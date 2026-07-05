@@ -1,0 +1,6 @@
+{
+  "name": "Jim Lucke - Personal Website",
+  "description": "A modern static website for Jim Lucke built with Vite, React, TypeScript, and Tailwind CSS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
