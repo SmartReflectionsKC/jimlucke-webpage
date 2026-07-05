@@ -24,7 +24,7 @@ export const siteData = {
   ],
   projects: [
     {
-      title: "CCKC Event Hub",
+      title: "CCKC Software",
       category: "Practical Software",
       description: "Event check-in, roster support, club workflow tools, and simple digital systems for Corvette Club KC.",
       tags: ["React", "Events", "Club Tools", "Workflow"],
@@ -70,11 +70,11 @@ export const siteData = {
     }
   ],
   photography: [
-    { title: "Abandoned America", image: "/images/photography/abandoned-building.jpg" },
-    { title: "Graffiti & Walls That Talk", image: "/images/photography/graffiti-story.jpg" },
-    { title: "Corvette Culture", image: "/images/photography/corvette-event.jpg" },
+    { title: "Abandoned America", image: "/images/photography/abandon-house.jpeg" },
+    { title: "Graffiti & Walls That Talk", image: "/images/photography/blm-matters.jpeg" },
+    { title: "Corvette Culture", image: "/images/photography/bw-69-side.jpg" },
     { title: "Community Moments", image: "/images/photography/community-moment.jpg" },
-    { title: "Travel Through a Lens", image: "/images/photography/travel-detail.jpg" },
+    { title: "Travel Through a Lens", image: "/images/photography/newzeland.jpeg" },
     { title: "Light, Texture & Detail", image: "/images/photography/texture-light.jpg" }
   ],
   fieldNotes: [
