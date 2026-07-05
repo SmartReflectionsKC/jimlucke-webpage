@@ -72,8 +72,8 @@ export const siteData = {
   photography: [
     { title: "Abandoned America", image: "/images/photography/abandon-house.jpeg" },
     { title: "Graffiti & Walls That Talk", image: "/images/photography/blm-matters.jpeg" },
-    { title: "Corvette Culture", image: "/images/photography/bw-69-side.jpg" },
-    { title: "Community Moments", image: "/images/photography/community-moment.jpg" },
+    { title: "Corvette Culture", image: "/images/photography/1969c3.jpeg" },
+    { title: "Community Moments", image: "/images/photography/community-moment.jpeg" },
     { title: "Travel Through a Lens", image: "/images/photography/newzeland.jpeg" },
     { title: "Light, Texture & Detail", image: "/images/photography/texture-light.jpg" }
   ],
