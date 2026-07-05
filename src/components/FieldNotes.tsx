@@ -43,9 +43,18 @@ export function FieldNotes() {
               Practical notes from the intersection of technology, community, photography, and useful ideas.
             </p>
           </div>
-          <a href="#" className="inline-flex items-center gap-2 text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              const element = document.getElementById("field-notes");
+              if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            }}
+            className="inline-flex items-center gap-2 text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors bg-transparent border-none p-0 cursor-pointer"
+          >
             View All Notes <ArrowRight size={16} />
-          </a>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

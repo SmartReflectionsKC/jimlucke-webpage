@@ -30,7 +30,13 @@ export const siteData = {
       tags: ["React", "Events", "Club Tools", "Workflow"],
       status: "Active",
       cta: "View Project",
-      link: "#"
+      link: "#",
+      details: [
+        "Digitized Event Check-in: Eliminated clipboard bottlenecks with a responsive, fast web check-in application that volunteers can run on any mobile device.",
+        "Roster & Club Sync: Automated membership list updates, giving organizers instant access to event RSVP lists and accurate club records.",
+        "Workflow Streamlining: Replaced fragmented manual forms with simple digital registration flows, making pre-event coordination a breeze."
+      ],
+      story: "Corvette Club KC holds frequent events, charity drives, and member cruises. By digitizing key parts of our administration, we minimized pre-event queues, saved trees, and let coordinators focus on making gatherings memorable."
     },
     {
       title: "SOAR Life Center Support",
@@ -39,7 +45,13 @@ export const siteData = {
       tags: ["SOAR", "Nonprofit", "Fundraising", "Storytelling"],
       status: "Active",
       cta: "View Project",
-      link: "#"
+      link: "#",
+      details: [
+        "Life Center Visioning: Synthesizing system workflows and communication patterns to support the physical and digital blueprint for the future SOAR Life Center.",
+        "Visual Advocacy: Crafting digital materials and stories that clearly articulate the 'why' behind the Life Center's fundraising campaigns.",
+        "Administrative Optimization: Developing lightweight templates and systems to reduce volunteer scheduling friction and maximize community engagement."
+      ],
+      story: "SOAR Special Needs does exceptional work providing care, support, and community for individuals with disabilities. Helping plan the operations and systems for the future SOAR Life Center ensures the organization can scale its life-changing services efficiently."
     },
     {
       title: "Smart Home & Practical Automation",
@@ -48,7 +60,13 @@ export const siteData = {
       tags: ["Automation", "Safety", "Elder Support", "Practical Tech"],
       status: "Field Notes",
       cta: "Read More",
-      link: "#"
+      link: "#",
+      details: [
+        "Safety-First Routines: Configuring motion sensors, automated leak detection, and low-glare nighttime path lighting for age-in-place environments.",
+        "Local-First Stability: Prioritizing secure, offline-capable smart home hubs (like Home Assistant) that keep personal data local and ensure 100% uptime.",
+        "Simplified Control: Creating bespoke tablet-friendly interfaces that consolidate multiple appliance standards into one obvious, clean screen."
+      ],
+      story: "Smart home technology should go far beyond playing music or turning lights purple. The true magic is building ambient, low-maintenance assistance systems that prevent falls, monitor environmental safety, and support absolute independence."
     },
     {
       title: "Photography & Creative Media",
@@ -66,7 +84,13 @@ export const siteData = {
       tags: ["AI", "Apps", "Prototypes", "Community"],
       status: "Exploring",
       cta: "Explore Ideas",
-      link: "#"
+      link: "#",
+      details: [
+        "Single-Purpose Prototypes: Designing highly focused web tools that prove that elegant, helpful software doesn't need to be huge or expensive.",
+        "AI-Assisted Development: Exploring how advanced LLM workflows let independent builders research, draft, and deploy finished digital projects in hours.",
+        "Open-Source Checklists: Packaging clean starting scripts, database schemas, and documentation to help community clubs get off paper."
+      ],
+      story: "The most satisfying code is often written in response to a very specific, practical real-world friction. This playground is where I prototype small tools to see what modern AI-driven build stacks can accomplish for civic and hobbyist needs."
     }
   ],
   photography: [
