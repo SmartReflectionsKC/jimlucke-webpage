@@ -70,11 +70,11 @@ export const siteData = {
     }
   ],
   photography: [
-    { title: "Abandoned America", image: "/images/photography/abandon-house.jpeg" },
-    { title: "Graffiti & Walls That Talk", image: "/images/photography/blm-matters.jpeg" },
-    { title: "Corvette Culture", image: "/images/photography/bw-69-side.jpg" },
-    { title: "Community Moments", image: "/images/photography/community-moment.jpg" },
-    { title: "Travel Through a Lens", image: "/images/photography/newzeland.jpeg" },
+    { title: "Abandoned America", image: "https://jimlucke.com/images/photography/abandon-house.jpeg" },
+    { title: "Graffiti & Walls That Talk", image: "https://jimlucke.com/images/photography/blm-matters.jpeg" },
+    { title: "Corvette Culture", image: "https://jimlucke.com/images/photography/bw-69-side.jpg" },
+    { title: "Community Moments", image: "https://jimlucke.com/images/photography/community-moment.jpg" },
+    { title: "Travel Through a Lens", image: "https://jimlucke.com/images/photography/newzeland.jpeg" },
     { title: "Light, Texture & Detail", image: "/images/photography/texture-light.jpg" }
   ],
   fieldNotes: [
