@@ -9,7 +9,7 @@ interface FieldNoteType {
   date?: string;
   readTime?: string;
   summary?: string;
-  content?: string[];
+  content?: string[] | string;
 }
 
 export function FieldNotes() {
@@ -159,9 +159,13 @@ export function FieldNotes() {
                 )}
 
                 <div className="space-y-6 text-slate-300 leading-relaxed text-base md:text-lg">
-                  {activeNote.content?.map((paragraph, index) => (
-                    <p key={index}>{paragraph}</p>
-                  ))}
+                  {typeof activeNote.content === 'string'
+                    ? activeNote.content.split('\n\n').filter(p => p.trim() !== '').map((paragraph, index) => (
+                        <p key={index}>{paragraph.trim()}</p>
+                      ))
+                    : activeNote.content?.map((paragraph, index) => (
+                        <p key={index}>{paragraph}</p>
+                      ))}
                 </div>
 
                 <div className="mt-12 pt-8 border-t border-white/5 flex justify-between items-center">
