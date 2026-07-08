@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { siteData } from "../data/siteContent";
 import { ArrowRight, BookOpen, X, Clock, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import Markdown from "react-markdown";
 
 interface FieldNoteType {
   title: string;
@@ -158,14 +159,32 @@ export function FieldNotes() {
                   </p>
                 )}
 
-                <div className="space-y-6 text-slate-300 leading-relaxed text-base md:text-lg">
-                  {typeof activeNote.content === 'string'
-                    ? activeNote.content.split('\n\n').filter(p => p.trim() !== '').map((paragraph, index) => (
-                        <p key={index}>{paragraph.trim()}</p>
-                      ))
-                    : activeNote.content?.map((paragraph, index) => (
+                <div className="text-slate-300 leading-relaxed text-base md:text-lg">
+                  {typeof activeNote.content === 'string' ? (
+                    <Markdown
+                      components={{
+                        h1: ({node, ...props}) => <h1 className="text-3xl font-display font-semibold text-white mt-10 mb-5" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-2xl font-display font-semibold text-white mt-8 mb-4" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-xl font-display font-medium text-white mt-6 mb-3" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-6" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-6 space-y-2" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal pl-6 mb-6 space-y-2" {...props} />,
+                        li: ({node, ...props}) => <li {...props} />,
+                        a: ({node, ...props}) => <a className="text-amber-400 hover:text-amber-300 underline underline-offset-4" {...props} />,
+                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-amber-500/50 pl-4 italic text-slate-400 my-6" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-semibold text-white" {...props} />,
+                        code: ({node, ...props}) => <code className="bg-slate-800 text-amber-200 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />,
+                      }}
+                    >
+                      {activeNote.content}
+                    </Markdown>
+                  ) : (
+                    <div className="space-y-6">
+                      {activeNote.content?.map((paragraph, index) => (
                         <p key={index}>{paragraph}</p>
                       ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-12 pt-8 border-t border-white/5 flex justify-between items-center">
