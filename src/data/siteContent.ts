@@ -17,7 +17,7 @@ export const siteData = {
   ],
   currentFocus: [
     { title: "Supporting SOAR’s Life Center vision" },
-    { title: "Improving CCKC Event Hub" },
+    { title: "Building a CCKC Web App" },
     { title: "Writing practical technology field notes" },
     { title: "Capturing community and automotive stories" },
     { title: "Exploring smarter homes for safety and independence" }
@@ -90,6 +90,22 @@ export const siteData = {
         "Single-Purpose Prototypes: Designing highly focused web tools that prove that elegant, helpful software doesn't need to be huge or expensive.",
         "AI-Assisted Development: Exploring how advanced LLM workflows let independent builders research, draft, and deploy finished digital projects in hours.",
         "Open-Source Checklists: Packaging clean starting scripts, database schemas, and documentation to help community clubs get off paper."
+      ],
+      story: "The most satisfying code is often written in response to a very specific, practical real-world friction. This playground is where I prototype small tools to see what modern AI-driven build stacks can accomplish for civic and hobbyist needs."
+    },
+    {
+      title: "Multimedia Club Newsletters",
+      category: "Visual Storytelling",
+      description: "I create professional, engaging newsletters for car clubs and community organizations that highlight members, events, sponsors, and achievements—helping increase visibility, strengthen connections, and attract new members.",
+      tags: ["AI", "Media", "Prototypes", "Community"],
+      status: "Active",
+      cta: "Explore Ideas",
+      link: "#",
+      details: [
+       "I create professional, interactive digital newsletters for car clubs, nonprofits, and community organizations.",
+       "Each publication combines engaging stories, event coverage, original photography and video, member highlights, sponsor recognition, clickable links, QR codes, and other interactive features that make information easy to explore and share.",
+       "More than simply reporting the news, these newsletters help organizations strengthen connections with current members, promote upcoming activities, recognize volunteers and supporters, provide value to sponsors, and showcase the personality of the organization.",
+       "The result is a polished digital publication that increases visibility, encourages participation, attracts new members, and keeps the community informed and engaged."
       ],
       story: "The most satisfying code is often written in response to a very specific, practical real-world friction. This playground is where I prototype small tools to see what modern AI-driven build stacks can accomplish for civic and hobbyist needs."
     }
