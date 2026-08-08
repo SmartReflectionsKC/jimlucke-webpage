@@ -410,7 +410,7 @@ Community identifies a problem → team evaluates it → project team forms → 
 `
     },
     {
-      title: "Your Experience Still Has Work to Do",
+      title: "Partnering with First Responders to improve the Special Needs Community",
       category: "Innovation Lab",
       date: "August 8, 2026",
       readTime: "3 min read",
