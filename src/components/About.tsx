@@ -22,12 +22,18 @@ export function About() {
                 
                 {/* Image element if actual image exists */}
                 <img 
-                  src="/images/jim-lucke.jpg" 
+                  src="/images/jim-lucke.jpeg" 
                   alt="Jim Lucke" 
-                  className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-80"
+                  className="absolute inset-0 w-full h-full object-cover rounded-xl"
                   onError={(e) => {
-                    // Hide if missing
-                    (e.target as HTMLImageElement).style.display = 'none';
+                    const target = e.target as HTMLImageElement;
+                    if (target.src.endsWith('.jpeg')) {
+                      // Try .jpg as fallback
+                      target.src = '/images/jim-lucke.jpg';
+                    } else {
+                      // Hide if missing completely
+                      target.style.display = 'none';
+                    }
                   }}
                 />
               </div>
