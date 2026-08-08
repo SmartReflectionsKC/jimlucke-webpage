@@ -17,7 +17,7 @@ export const siteData = {
   ],
   currentFocus: [
     { title: "Supporting SOAR’s Life Center vision" },
-    { title: "Building a CCKC Web App" },
+    { title: "Building a Web App for the Corvette Club" },
     { title: "Writing practical technology field notes" },
     { title: "Capturing community and automotive stories" },
     { title: "Exploring smarter homes for safety and independence" }
