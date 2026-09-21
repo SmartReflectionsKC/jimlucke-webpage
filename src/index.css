@@ -11,11 +11,24 @@
   --color-teal-500: #14b8a6;
 }
 
+html {
+  color-scheme: dark;
+  background-color: #020617;
+}
+
+html,
+body,
+#root {
+  background-color: #020617;
+  color: #e2e8f0;
+  min-height: 100%;
+}
+
 @layer utilities {
   .glass-panel {
     @apply bg-slate-900/50 backdrop-blur-xl border border-white/10 shadow-[0_4px_24px_-1px_rgba(0,0,0,0.2)] rounded-2xl;
   }
-  
+
   .text-glow {
     text-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
   }

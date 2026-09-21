@@ -1,0 +1,16 @@
+{
+  "id": "travel-through-a-lens",
+  "title": "Travel Through a Lens",
+  "description": "Landscape vistas, foreign streets, and unfamiliar horizons captured along the journey.",
+  "date": "2026-03-12",
+  "coverImage": "/images/photography/newzeland.jpeg",
+  "displayOrder": 5,
+  "published": true,
+  "images": [
+    {
+      "src": "/images/photography/newzeland.jpeg",
+      "alt": "Dramatic mountains and turquoise waterways in New Zealand",
+      "caption": "Vast landscapes and clean light across New Zealand's South Island."
+    }
+  ]
+}

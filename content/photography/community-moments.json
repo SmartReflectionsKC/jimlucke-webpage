@@ -1,0 +1,21 @@
+{
+  "id": "community-moments",
+  "title": "Community Moments",
+  "description": "Gatherings, volunteers, and grassroots efforts that make local organizations strong.",
+  "date": "2026-06-25",
+  "coverImage": "/images/photography/soarlifecentervision.jpg",
+  "displayOrder": 4,
+  "published": true,
+  "images": [
+    {
+      "src": "/images/photography/soarlifecentervision.jpg",
+      "alt": "Architectural rendering of the future SOAR Life and Community Center",
+      "caption": "The vision for a permanent place of belonging, respite, and hope for special-needs families."
+    },
+    {
+      "src": "/images/photography/community-moment.jpeg",
+      "alt": "Community volunteers working together at a local event",
+      "caption": "People coming together to support one another in practical, meaningful ways."
+    }
+  ]
+}

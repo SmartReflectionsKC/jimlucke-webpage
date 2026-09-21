@@ -11,7 +11,7 @@ export function Connect() {
   ];
 
   return (
-    <section id="connect" className="py-24">
+    <section id="connect" className="py-24 scroll-mt-20">
       <div className="max-w-4xl mx-auto px-6 text-center">
         <h2 className="text-3xl font-display font-semibold text-white mb-4">Let's Connect</h2>
         <div className="w-12 h-1 bg-amber-500 rounded-full mx-auto mb-8"></div>

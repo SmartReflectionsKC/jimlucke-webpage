@@ -1,56 +1,57 @@
-import { useState, useEffect } from "react";
-import { siteData } from "../data/siteContent";
-import { ArrowUpRight, X, Sparkles, CheckCircle2, Heart, Cpu, HelpCircle, Code2, Camera } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { siteData, ProjectItem } from "../data/siteContent";
+import { ArrowUpRight, X, Sparkles, CheckCircle2, Heart, Cpu, Code2, Camera, Layers } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-
-interface ProjectType {
-  title: string;
-  category: string;
-  description: string;
-  tags: string[];
-  status: string;
-  cta: string;
-  link: string;
-  details?: string[];
-  story?: string;
-}
+import { useFocusTrap } from "../utils/useShareableModal";
 
 export function Projects() {
-  const [activeProject, setActiveProject] = useState<ProjectType | null>(null);
+  const [activeProject, setActiveProject] = useState<ProjectItem | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
-  // Close modal on escape key
+  useFocusTrap(Boolean(activeProject), modalRef);
+
   useEffect(() => {
+    if (activeProject) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      if (triggerRef.current && document.contains(triggerRef.current)) {
+        triggerRef.current.focus();
+        triggerRef.current = null;
+      }
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [activeProject]);
+
+  useEffect(() => {
+    if (!activeProject) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setActiveProject(null);
       }
     };
-    if (activeProject) {
-      window.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "unset";
-    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeProject]);
 
-  const handleProjectClick = (e: React.MouseEvent, project: ProjectType) => {
+  const handleProjectClick = (e: React.MouseEvent<HTMLElement>, project: ProjectItem) => {
     if (project.link.startsWith("#") && project.link.length > 1) {
-      // It's a real anchor link (e.g. #photography). Let's smooth scroll!
       e.preventDefault();
       const element = document.getElementById(project.link.substring(1));
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "start" });
       }
-    } else if (project.link === "#") {
-      // It's a modal project. Prevent default and show modal.
+    } else {
       e.preventDefault();
+      triggerRef.current = e.currentTarget;
       setActiveProject(project);
     }
   };
 
-  // Helper to get matching icons for categories in the modal
   const getCategoryIcon = (category: string) => {
     const cat = category.toLowerCase();
     if (cat.includes("software")) return <Code2 className="text-cyan-400" size={24} />;
@@ -61,11 +62,20 @@ export function Projects() {
   };
 
   return (
-    <section id="projects" className="py-24">
+    <section id="projects" className="py-24 scroll-mt-20">
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16">
-          <h2 className="text-3xl font-display font-semibold text-white">Things I’m Building / Supporting</h2>
-          <div className="w-12 h-1 bg-cyan-500 rounded-full mt-4"></div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono mb-3">
+            <Layers size={12} className="text-cyan-400" />
+            SYSTEMS & COMMUNITY TOOLS
+          </div>
+          <h2 className="text-3xl md:text-4xl font-display font-semibold text-white">
+            Projects & Community Systems
+          </h2>
+          <div className="w-12 h-1 bg-cyan-500 rounded-full mt-4 mb-4"></div>
+          <p className="text-slate-400 max-w-2xl text-base md:text-lg">
+            Practical platforms and community systems built to support organizations, volunteers, and people who do good work.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -76,19 +86,27 @@ export function Projects() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
+              tabIndex={0}
+              role="button"
+              aria-haspopup="dialog"
               onClick={(e) => handleProjectClick(e, project)}
-              className="glass-panel p-8 flex flex-col h-full group relative overflow-hidden cursor-pointer hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.05)] transition-all duration-300"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleProjectClick(e as any, project);
+                }
+              }}
+              className="glass-panel p-8 flex flex-col justify-between group relative overflow-hidden cursor-pointer hover:border-cyan-500/40 hover:shadow-[0_0_30px_rgba(6,182,212,0.08)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-400"
             >
-              {/* Subtle hover gradient */}
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
               
               <div className="relative z-10 flex flex-col h-full">
                 <div className="flex justify-between items-start mb-4">
-                  <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider px-2 py-1 bg-cyan-950/50 rounded border border-cyan-500/20">
+                  <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider px-2.5 py-1 bg-cyan-950/60 rounded border border-cyan-500/20">
                     {project.category}
                   </span>
                   <span className="flex items-center gap-2 text-xs font-medium text-slate-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                     {project.status}
                   </span>
                 </div>
@@ -97,25 +115,22 @@ export function Projects() {
                   {project.title}
                 </h3>
                 
-                <p className="text-slate-400 leading-relaxed mb-8 flex-grow">
+                <p className="text-slate-400 leading-relaxed mb-6 flex-grow text-sm">
                   {project.description}
                 </p>
                 
-                <div className="flex flex-wrap gap-2 mb-8">
+                <div className="flex flex-wrap gap-2 mb-6">
                   {project.tags.map((tag, i) => (
-                    <span key={i} className="text-xs text-slate-300 bg-slate-800 px-2 py-1 rounded-md border border-slate-700">
+                    <span key={i} className="text-xs text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-md border border-white/5 font-mono">
                       {tag}
                     </span>
                   ))}
                 </div>
                 
-                <button 
-                  onClick={(e) => handleProjectClick(e, project)}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-cyan-400 transition-colors self-start mt-auto bg-transparent border-none p-0 cursor-pointer"
-                >
-                  {project.cta}
+                <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-medium text-cyan-400 group-hover:text-cyan-300 mt-auto">
+                  <span>{project.cta}</span>
                   <ArrowUpRight size={16} className="transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                </button>
+                </div>
               </div>
             </motion.div>
           ))}
@@ -125,28 +140,32 @@ export function Projects() {
       {/* Project Details Modal */}
       <AnimatePresence>
         {activeProject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
-            {/* Backdrop */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" role="presentation">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setActiveProject(null)}
               className="absolute inset-0 bg-slate-950/85 backdrop-blur-md"
+              aria-hidden="true"
             />
 
-            {/* Modal Content */}
             <motion.div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="project-modal-title"
+              tabIndex={-1}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto glass-panel p-6 md:p-10 bg-slate-900/95 border border-white/10 shadow-2xl z-10 custom-scrollbar"
+              className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto glass-panel p-6 md:p-10 bg-slate-900/95 border border-white/10 shadow-2xl z-10 custom-scrollbar focus:outline-none"
             >
               <button
                 onClick={() => setActiveProject(null)}
-                className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors border border-white/5"
-                aria-label="Close modal"
+                className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors border border-white/5 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                aria-label="Close dialog"
               >
                 <X size={20} />
               </button>
@@ -166,11 +185,11 @@ export function Projects() {
                   </div>
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-display font-semibold text-white leading-tight mb-4">
+                <h3 id="project-modal-title" className="text-2xl md:text-3xl font-display font-semibold text-white leading-tight mb-4">
                   {activeProject.title}
-                </h2>
+                </h3>
 
-                <p className="text-slate-300 leading-relaxed text-base md:text-lg mb-8">
+                <p className="text-slate-300 leading-relaxed text-base mb-8">
                   {activeProject.description}
                 </p>
 
@@ -215,10 +234,10 @@ export function Projects() {
                   ))}
                 </div>
 
-                <div className="mt-10 pt-6 border-t border-white/5 flex justify-end">
+                <div className="mt-8 pt-6 border-t border-white/5 flex justify-end">
                   <button
                     onClick={() => setActiveProject(null)}
-                    className="px-6 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-sm font-semibold transition-colors"
+                    className="px-6 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-400"
                   >
                     Done
                   </button>
@@ -231,4 +250,3 @@ export function Projects() {
     </section>
   );
 }
-

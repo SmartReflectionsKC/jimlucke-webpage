@@ -1,7 +1,8 @@
 import { siteData } from "../data/siteContent";
 import { MissionDashboard } from "./MissionDashboard";
 import { motion } from "motion/react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Hammer } from "lucide-react";
+import { handleSectionNavigation } from "../utils/navigation";
 
 export function Hero() {
   return (
@@ -11,33 +12,45 @@ export function Hero() {
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-          
-          <motion.div 
+
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="flex flex-col items-start"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-amber-500/30 text-amber-400 text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-amber-500/30 text-amber-400 text-sm font-medium mb-6 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              Digital Workshop
+              Personal Innovation Portfolio
             </div>
-            
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-white leading-tight mb-6">
-              Building practical technology, <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">visual stories</span>, and community tools.
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-semibold text-white leading-[1.15] mb-6">
+              Retired from corporate technology.{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500">
+                Not retired from building things.
+              </span>
             </h1>
-            
-            <p className="text-lg text-slate-400 leading-relaxed max-w-xl mb-10">
-              {siteData.hero.subtitle}
+
+            <p className="text-lg text-slate-300 leading-relaxed max-w-xl mb-10">
+              {siteData.hero.subheadline}
             </p>
-            
+
             <div className="flex flex-wrap items-center gap-4">
-              <a href="#projects" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium transition-colors">
-                Explore Projects
+              <a
+                href="#projects"
+                onClick={(e) => handleSectionNavigation(e, '#projects')}
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                Explore My Projects
                 <ArrowRight size={18} />
               </a>
-              <a href="#connect" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 text-white font-medium transition-colors border border-slate-700">
-                Connect with Jim
+              <a
+                href="#working-on"
+                onClick={(e) => handleSectionNavigation(e, '#working-on')}
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white font-medium transition-colors border border-white/10 hover:border-amber-500/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+              >
+                <Hammer size={18} className="text-amber-400" />
+                What I’m Working On
               </a>
             </div>
           </motion.div>

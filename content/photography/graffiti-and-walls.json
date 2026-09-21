@@ -1,0 +1,16 @@
+{
+  "id": "graffiti-and-walls",
+  "title": "Graffiti & Walls That Talk",
+  "description": "Urban expression, public art, and street-level messages painted on brick and concrete.",
+  "date": "2026-04-20",
+  "coverImage": "/images/photography/blm-matters.jpeg",
+  "displayOrder": 2,
+  "published": true,
+  "images": [
+    {
+      "src": "/images/photography/blm-matters.jpeg",
+      "alt": "Colorful street mural and graffiti on an urban brick wall",
+      "caption": "Public art capturing community sentiment and raw urban voice."
+    }
+  ]
+}
