@@ -1,24 +1,51 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { siteData } from "../data/siteContent";
-import { MissionDashboard } from "./MissionDashboard";
-import { motion } from "motion/react";
-import { ArrowRight, Hammer } from "lucide-react";
+import { ArrowRight, Hammer, Code2, HeartHandshake, Camera } from "lucide-react";
 import { handleSectionNavigation } from "../utils/navigation";
 
 export function Hero() {
+  const visualCues = [
+    {
+      icon: Code2,
+      label: "Practical Software",
+      color: "text-cyan-400",
+      borderColor: "border-cyan-500/30",
+      bgBadge: "bg-slate-900/90",
+      desktopPosition: "lg:absolute lg:-top-3 lg:-left-6",
+    },
+    {
+      icon: HeartHandshake,
+      label: "Community & Nonprofits",
+      color: "text-teal-400",
+      borderColor: "border-teal-500/30",
+      bgBadge: "bg-slate-900/90",
+      desktopPosition: "lg:absolute lg:top-1/2 lg:-right-6 lg:-translate-y-1/2",
+    },
+    {
+      icon: Camera,
+      label: "Photography & Workshop",
+      color: "text-amber-400",
+      borderColor: "border-amber-500/30",
+      bgBadge: "bg-slate-900/90",
+      desktopPosition: "lg:absolute lg:-bottom-3 lg:-left-2",
+    },
+  ];
+
   return (
-    <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+    <section className="relative pt-32 pb-16 md:pt-44 md:pb-24 overflow-hidden">
       {/* Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+        {/* 58/42 desktop split (7 cols / 5 cols) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col items-start"
-          >
+          {/* Left text column (~58% width on desktop) */}
+          <div className="lg:col-span-7 flex flex-col items-start">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-amber-500/30 text-amber-400 text-sm font-medium mb-6 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
               Personal Innovation Portfolio
@@ -53,16 +80,80 @@ export function Hero() {
                 What I’m Working On
               </a>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            className="flex justify-center"
-          >
-            <MissionDashboard />
-          </motion.div>
+          {/* Right visual column (~42% width on desktop, stacked below CTAs on mobile) */}
+          <div className="lg:col-span-5 flex flex-col items-center justify-center">
+            <div className="relative w-full max-w-sm sm:max-w-md mx-auto">
+              {/* Subtle ambient lighting backdrop */}
+              <div
+                className="absolute -inset-3 bg-gradient-to-tr from-amber-500/15 via-transparent to-cyan-500/15 rounded-3xl blur-2xl -z-10 pointer-events-none"
+                aria-hidden="true"
+              ></div>
+
+              {/* Modern Restrained Portrait Panel */}
+              <div className="relative aspect-[4/5] rounded-2xl overflow-hidden glass-panel p-2.5 shadow-2xl border border-white/10 bg-slate-900/80">
+                <div className="w-full h-full rounded-xl overflow-hidden relative bg-slate-950">
+                  <img
+                    src="/images/jim-lucke.jpeg"
+                    alt="Jim Lucke portrait"
+                    className="w-full h-full object-cover object-top filter grayscale contrast-[1.05]"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (target.src.endsWith('.jpeg')) {
+                        target.src = '/images/jim-lucke.jpg';
+                      }
+                    }}
+                  />
+                  {/* Subtle tonal vignette gradient overlay */}
+                  <div
+                    className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none"
+                    aria-hidden="true"
+                  ></div>
+                  <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs text-slate-300 font-mono pointer-events-none">
+                    <span className="text-slate-400">Jim Lucke</span>
+                    <span className="text-amber-400/80">Builder & Technologist</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Floating Cue Badges (positioned cleanly outside face area) */}
+              <div className="hidden lg:block pointer-events-none">
+                {visualCues.map((cue, idx) => {
+                  const Icon = cue.icon;
+                  return (
+                    <div
+                      key={idx}
+                      className={`${cue.desktopPosition} z-20 inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${cue.bgBadge} border ${cue.borderColor} shadow-xl backdrop-blur-md transition-transform hover:scale-105 pointer-events-auto`}
+                    >
+                      <Icon size={14} className={cue.color} />
+                      <span className="text-xs font-medium text-slate-200 whitespace-nowrap">
+                        {cue.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mobile / Tablet Supporting Cues (rendered inline below portrait to never obscure face) */}
+            <div className="flex flex-wrap items-center justify-center gap-2.5 mt-5 lg:hidden">
+              {visualCues.map((cue, idx) => {
+                const Icon = cue.icon;
+                return (
+                  <div
+                    key={idx}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${cue.bgBadge} border ${cue.borderColor} shadow-md`}
+                  >
+                    <Icon size={13} className={cue.color} />
+                    <span className="text-xs font-medium text-slate-200">
+                      {cue.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
         </div>
       </div>

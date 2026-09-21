@@ -5,6 +5,7 @@
 
 import { Header } from "./components/Header";
 import { Hero } from "./components/Hero";
+import { CredibilityStrip } from "./components/CredibilityStrip";
 import { WorkingOnNow } from "./components/WorkingOnNow";
 import { Projects } from "./components/Projects";
 import { Workshop } from "./components/Workshop";
@@ -29,6 +30,7 @@ export default function App() {
       <Header />
       <main>
         <Hero />
+        <CredibilityStrip />
         <WorkingOnNow onOpenNote={openNote} />
         <Projects />
         <Workshop />

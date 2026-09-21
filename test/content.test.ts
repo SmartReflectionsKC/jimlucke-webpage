@@ -218,3 +218,74 @@ test('Query Parameter Resolution: note takes precedence over gallery, unknown ID
   assert.equal(res4.activeGallery, null);
   assert.equal(res4.cleanedQueryString, '');
 });
+
+test('Content: CollectorHQ, EmpowerResponse, and SOAR adhere to approved wording', async () => {
+  const { siteData } = await import('../src/data/siteContent');
+
+  const chq = siteData.workingOnNow.find(i => i.id === 'collector-hq');
+  assert.ok(chq, 'CollectorHQ must exist in workingOnNow');
+  assert.ok(!chq.description.includes('local-first'), 'CollectorHQ must not be described as local-first');
+  assert.ok(!chq.description.includes('complete provenance tracking'), 'CollectorHQ must not promise complete provenance tracking');
+  assert.equal(
+    chq.shortSentence,
+    'A focused cataloging platform designed to help collectors organize their collections, document provenance, and retain control of their collection records.'
+  );
+
+  const er = siteData.workingOnNow.find(i => i.id === 'empower-response');
+  assert.ok(er, 'EmpowerResponse must exist in workingOnNow');
+  assert.equal(
+    er.shortSentence,
+    'Helping authorized first responders access important communication, sensory, and support information when responding to an individual with special needs.'
+  );
+
+  const soar = siteData.workingOnNow.find(i => i.id === 'soar-life-center');
+  assert.ok(soar, 'SOAR must exist in workingOnNow');
+  assert.equal(
+    soar.shortSentence,
+    'Supporting the planning, communication, and technology behind SOAR Special Needs’ proposed Life & Community Center.'
+  );
+});
+
+test('Content: WorkingOnNow and Projects maintain distinct descriptions without duplicated sentences', async () => {
+  const { siteData } = await import('../src/data/siteContent');
+
+  const nowDescriptions = siteData.workingOnNow.map(i => i.description);
+  const projectDescriptions = siteData.projects.map(p => p.description);
+
+  for (const nowDesc of nowDescriptions) {
+    for (const projDesc of projectDescriptions) {
+      assert.notEqual(nowDesc, projDesc, 'WorkingOnNow and Projects must not have identical descriptions');
+      // Verify no shared complete sentence longer than 20 chars
+      const nowSentences = nowDesc.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 20);
+      const projSentences = projDesc.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 20);
+      for (const ns of nowSentences) {
+        assert.ok(!projSentences.includes(ns), `Shared sentence found between WorkingOnNow and Projects: "${ns}"`);
+      }
+    }
+  }
+});
+
+test('Content: CredibilityStrip avoids permanent campus claim and LinkedIn is conditionally hidden', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const credContent = fs.readFileSync(path.resolve('src/components/CredibilityStrip.tsx'), 'utf-8');
+
+  assert.ok(
+    credContent.includes('Supporting families & the Life Center vision'),
+    'CredibilityStrip must use "Supporting families & the Life Center vision"'
+  );
+  assert.ok(
+    !credContent.includes('community campus vision'),
+    'CredibilityStrip must not claim permanent community campus vision'
+  );
+
+  const connectContent = fs.readFileSync(path.resolve('src/components/Connect.tsx'), 'utf-8');
+  assert.ok(
+    connectContent.includes('{isValidLinkedInUrl && ('),
+    'Connect component must hide LinkedIn card unless URL is valid'
+  );
+  assert.ok(
+    !connectContent.includes('LinkedIn Connection Request'),
+    'Connect component must not show a fallback email action for LinkedIn'
+  );
+});

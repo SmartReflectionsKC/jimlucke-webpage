@@ -1,8 +1,9 @@
 import { useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Camera, X, Calendar, Image as ImageIcon } from "lucide-react";
 import { PhotographyGallery, getPhotographyGalleries } from "../utils/contentLoader";
 import { useFocusTrap } from "../utils/useShareableModal";
+import { getCardMotionProps } from "../utils/motion";
 
 interface PhotographyProps {
   activeGallery: PhotographyGallery | null;
@@ -11,6 +12,7 @@ interface PhotographyProps {
 }
 
 export function Photography({ activeGallery, onOpenGallery, onCloseGallery }: PhotographyProps) {
+  const shouldReduceMotion = useReducedMotion();
   const galleries = getPhotographyGalleries();
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -37,10 +39,7 @@ export function Photography({ activeGallery, onOpenGallery, onCloseGallery }: Ph
           {galleries.map((gallery, index) => (
             <motion.div
               key={gallery.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.08 }}
+              {...getCardMotionProps(index, Boolean(shouldReduceMotion))}
               tabIndex={0}
               role="button"
               aria-haspopup="dialog"

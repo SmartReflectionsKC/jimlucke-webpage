@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { siteData, WorkshopItem } from "../data/siteContent";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { ArrowUpRight, X, CheckCircle2, Wrench } from "lucide-react";
 import { useFocusTrap } from "../utils/useShareableModal";
+import { getCardMotionProps } from "../utils/motion";
 
 export function Workshop() {
+  const shouldReduceMotion = useReducedMotion();
   const [activeItem, setActiveItem] = useState<WorkshopItem | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -66,10 +68,7 @@ export function Workshop() {
             return (
               <motion.div
                 key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                {...getCardMotionProps(index, Boolean(shouldReduceMotion))}
                 tabIndex={0}
                 role="button"
                 aria-haspopup="dialog"

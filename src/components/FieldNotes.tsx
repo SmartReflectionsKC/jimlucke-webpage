@@ -1,9 +1,10 @@
 import { useRef } from "react";
 import { ArrowRight, BookOpen, X, Clock, Calendar } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Markdown from "react-markdown";
 import { FieldNoteItem, getFieldNotes } from "../utils/contentLoader";
 import { useFocusTrap } from "../utils/useShareableModal";
+import { getCardMotionProps } from "../utils/motion";
 
 interface FieldNotesProps {
   activeNote: FieldNoteItem | null;
@@ -12,6 +13,7 @@ interface FieldNotesProps {
 }
 
 export function FieldNotes({ activeNote, onOpenNote, onCloseNote }: FieldNotesProps) {
+  const shouldReduceMotion = useReducedMotion();
   const notes = getFieldNotes();
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -43,10 +45,7 @@ export function FieldNotes({ activeNote, onOpenNote, onCloseNote }: FieldNotesPr
           {notes.map((note, index) => (
             <motion.div
               key={note.slug}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.08 }}
+              {...getCardMotionProps(index, Boolean(shouldReduceMotion))}
               tabIndex={0}
               role="button"
               aria-haspopup="dialog"

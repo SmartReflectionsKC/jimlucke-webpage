@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { siteData, InitiativeItem } from "../data/siteContent";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { ArrowUpRight, X, Sparkles, CheckCircle2, MessageSquare, BookOpen, Layers } from "lucide-react";
 import { useFocusTrap } from "../utils/useShareableModal";
+import { getCardMotionProps } from "../utils/motion";
 
 interface WorkingOnNowProps {
   onOpenNote?: (slug: string) => void;
 }
 
 export function WorkingOnNow({ onOpenNote }: WorkingOnNowProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [activeInitiative, setActiveInitiative] = useState<InitiativeItem | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -84,10 +86,7 @@ export function WorkingOnNow({ onOpenNote }: WorkingOnNowProps) {
           {siteData.workingOnNow.map((item, index) => (
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
+              {...getCardMotionProps(index, Boolean(shouldReduceMotion))}
               tabIndex={0}
               role="button"
               aria-haspopup="dialog"
@@ -98,7 +97,7 @@ export function WorkingOnNow({ onOpenNote }: WorkingOnNowProps) {
                   handleCardClick(e as any, item);
                 }
               }}
-              className="glass-panel p-8 flex flex-col justify-between group relative overflow-hidden cursor-pointer hover:border-amber-500/40 hover:shadow-[0_0_30px_rgba(245,158,11,0.08)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="glass-panel p-7 md:p-8 flex flex-col justify-between group relative overflow-hidden cursor-pointer hover:border-amber-500/40 hover:shadow-[0_0_30px_rgba(245,158,11,0.08)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
               {/* Subtle hover gradient */}
               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -118,17 +117,17 @@ export function WorkingOnNow({ onOpenNote }: WorkingOnNowProps) {
                   {item.title}
                 </h3>
 
-                <p className="text-sm font-medium text-amber-200/90 mb-4 italic">
+                <p className="text-sm font-medium text-amber-200/90 mb-3 italic">
                   “{item.tagline}”
                 </p>
 
-                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                  {item.description}
+                <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                  {item.shortSentence || item.description}
                 </p>
               </div>
 
               <div className="relative z-10 pt-4 border-t border-white/5 flex items-center justify-between text-xs font-medium text-amber-400 group-hover:text-amber-300">
-                <span>View Initiative Details</span>
+                <span>Explore Initiative Details</span>
                 <ArrowUpRight size={16} className="transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </div>
             </motion.div>

@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { siteData, ProjectItem } from "../data/siteContent";
 import { ArrowUpRight, X, Sparkles, CheckCircle2, Heart, Cpu, Code2, Camera, Layers } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useFocusTrap } from "../utils/useShareableModal";
+import { getCardMotionProps } from "../utils/motion";
 
 export function Projects() {
+  const shouldReduceMotion = useReducedMotion();
   const [activeProject, setActiveProject] = useState<ProjectItem | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -82,10 +84,7 @@ export function Projects() {
           {siteData.projects.map((project, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
+              {...getCardMotionProps(index, Boolean(shouldReduceMotion))}
               tabIndex={0}
               role="button"
               aria-haspopup="dialog"
