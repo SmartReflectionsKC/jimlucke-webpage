@@ -6,6 +6,7 @@ export interface InitiativeItem {
   tagline: string;
   category: string;
   status: string;
+  shortSentence?: string;
   description: string;
   highlights: string[];
   actions: {
@@ -61,11 +62,12 @@ export const siteData = {
       tagline: "Every collection. One headquarters.",
       category: "Personal Software",
       status: "In Development",
-      description: "A centralized, intelligent cataloging and provenance platform designed specifically for collectors who need structured tracking, valuation history, documentation, and asset headquarters without bloated enterprise software.",
+      shortSentence: "A focused cataloging platform designed to help collectors organize their collections, document provenance, and retain control of their collection records.",
+      description: "A focused cataloging platform designed to help collectors organize their collections, document provenance, and retain control of their collection records.",
       highlights: [
         "Structured Cataloging: Custom attributes tailored to specialized collections, from automotive memorabilia to rare historical items.",
-        "Provenance & Media: High-resolution photo attachments, receipt archival, condition reports, and insurance-ready export formats.",
-        "Local-First & Secure: Built with privacy in mind so collection records remain confidential, portable, and accessible anytime."
+        "Provenance & Documentation: Structured records, photo attachments, condition reports, and export formats.",
+        "Data Control: Designed to give collectors direct ownership and control over their private catalog archives."
       ],
       actions: [
         { label: "Discuss CollectorHQ", type: "discuss", subject: "CollectorHQ Conversation" },
@@ -78,11 +80,12 @@ export const siteData = {
       tagline: "Practical technology supporting care, independence, and emergency response.",
       category: "Public Safety & Special Needs",
       status: "Active Innovation",
-      description: "Connecting authorized first responders with essential guidance at critical moments—helping protect individuals with disabilities, sensory sensitivities, communication challenges, and medical conditions during emergencies.",
+      shortSentence: "Helping authorized first responders access important communication, sensory, and support information when responding to an individual with special needs.",
+      description: "Helping authorized first responders access important communication, sensory, and support information when responding to an individual with special needs.",
       highlights: [
-        "Rapid Context Access: Surfaces need-to-know communication preferences, calming strategies, and emergency contacts in seconds.",
-        "Privacy & Trust by Design: Need-to-know emergency access controls that keep sensitive information safe while aiding responders when seconds count.",
-        "Built Around Dignity: Helps first responders de-escalate stressful interactions and treat vulnerable citizens with immediate understanding."
+        "Immediate Context: Quickly presents preferred communication methods, sensory de-escalation tips, and trusted emergency contacts.",
+        "Privacy & Safeguards: Restricted access protocols designed to safeguard personal details while aiding responders in urgent moments.",
+        "Dignified Support: Equips first responders with actionable guidance to interact with empathy and understanding."
       ],
       actions: [
         { label: "Read Field Note", type: "note", target: "empowerresponse-first-responders" },
@@ -92,14 +95,15 @@ export const siteData = {
     {
       id: "cckc-event-hub",
       title: "CCKC Event Hub",
-      tagline: "Streamlined event registration, check-in, attendance, and reporting for the Corvette Club of Kansas City.",
+      tagline: "Streamlined event registration, check-in, attendance, and reporting for Corvette Club KC.",
       category: "Community Software",
       status: "Live & Active",
+      shortSentence: "A mobile check-in platform replacing paper clipboards with fast, volunteer-friendly digital workflows at club gatherings.",
       description: "A tailored mobile check-in and event administration web platform that replaced clipboard bottlenecks and paper waivers with rapid volunteer-friendly digital workflows.",
       highlights: [
         "Frictionless Volunteer Check-in: Runs on any smartphone or tablet at cruise staging areas without app store downloads.",
         "Attendance & Roster Sync: Instant real-time attendance counts and roster verification for organizers.",
-        "Club Coordination: Streamlines coordination across dozens of charity drives, cruises, and monthly gatherings."
+        "Club Coordination: Streamlines coordination across charity drives, cruises, and monthly gatherings."
       ],
       actions: [
         { label: "View Project Details", type: "anchor", target: "#projects" },
@@ -112,11 +116,12 @@ export const siteData = {
       tagline: "Supporting the development of a transformative community center for individuals with disabilities and their families.",
       category: "Nonprofit Vision",
       status: "Capital Campaign",
-      description: "Helping communicate and organize systems for SOAR Special Needs' permanent campus—creating spaces for belonging, respite, vocational training, adult social clubs, and long-term community infrastructure.",
+      shortSentence: "Supporting the planning, communication, and technology behind SOAR Special Needs’ proposed Life & Community Center.",
+      description: "Supporting the planning, communication, and technology behind SOAR Special Needs’ proposed Life & Community Center.",
       highlights: [
-        "Infrastructure for Belonging: Purpose-built campus providing camp, day programs, respite, life-skills development, and employment pathways.",
-        "Systems & Campaign Strategy: Assisting with campaign communication, donor engagement architecture, and technology planning.",
-        "Phase One Foundation: Creating the permanent base to serve hundreds of families who have outgrown temporary spaces."
+        "Vision for Belonging: Supporting plans for day programs, respite care, social clubs, and vocational opportunities.",
+        "Strategy & Systems: Assisting leadership with donor engagement technology, operational systems, and campaign communications.",
+        "Community Foundation: Helping establish the operational backbone required to launch Phase One of the proposed center."
       ],
       actions: [
         { label: "Read Campaign Story", type: "note", target: "soar-life-center-phase-one" },
@@ -128,63 +133,66 @@ export const siteData = {
     {
       title: "CCKC Software & Event Hub",
       category: "Practical Software",
-      description: "Event check-in, roster support, club workflow tools, and simple digital systems for Corvette Club KC.",
+      description: "Designed and implemented a dedicated mobile registration and check-in system for the Corvette Club of Kansas City to modernize staging operations.",
       tags: ["React", "Events", "Club Tools", "Workflow"],
       status: "Active",
       cta: "View Project Details",
       link: "#",
       details: [
-        "Digitized Event Check-in: Eliminated clipboard bottlenecks with a responsive, fast web check-in application that volunteers can run on any mobile device.",
-        "Roster & Club Sync: Automated membership list updates, giving organizers instant access to event RSVP lists and accurate club records.",
-        "Workflow Streamlining: Replaced fragmented manual forms with simple digital registration flows, making pre-event coordination a breeze."
+        "The Problem: Club cruises and charity rallies relied on physical clipboards and paper waiver sheets, creating registration queues and delayed event departures.",
+        "What Was Built: A responsive, lightweight web application allowing volunteer marshals to look up members, verify registrations, and log attendees from any phone browser without app store hurdles.",
+        "Who It Serves: Volunteer cruise coordinators, board officers, and hundreds of club members staging at charity drives and regional runs.",
+        "Practical Outcome: Replaced manual paper tracking with real-time roster synchronization, cutting check-in times to under 30 seconds per vehicle and eliminating lost paperwork."
       ],
-      story: "Corvette Club KC holds frequent events, charity drives, and member cruises. By digitizing key parts of our administration, we minimized pre-event queues, saved trees, and let coordinators focus on making gatherings memorable."
+      story: "By focusing on the specific friction volunteers faced in parking lots on chilly Saturday mornings, simple web technology eliminated lines and let organizers focus on hospitality and safety."
     },
     {
       title: "SOAR Life Center Systems Support",
       category: "Nonprofit Systems",
-      description: "Helping communicate the Life Center vision through storytelling, systems thinking, campaign support, and practical technology.",
+      description: "Provided operational roadmaps, storytelling frameworks, and donor communication systems for SOAR Special Needs' capital campaign.",
       tags: ["SOAR", "Nonprofit", "Fundraising", "Storytelling"],
       status: "Active",
       cta: "View Project Details",
       link: "#",
       details: [
-        "The SOAR Life & Community Center is more than a proposed building — it is a vision for daily support, long-term hope, and a true place of belonging for individuals with special needs and their families.",
-        "From respite and camp to life skills, social connection, employment pathways, and future care, this project is designed to answer the questions families carry every day.",
-        "With the right people, partners, and resources, SOAR can turn this vision into a lasting home for the special needs community.",
-        "Read more to see why Phase One matters — and how you may be part of helping it begin."
+        "The Problem: As demand for special needs day programs and respite services outgrew temporary facilities, SOAR needed clear operational and storytelling frameworks to articulate its long-term vision to supporters.",
+        "What Was Contributed: Systems roadmaps, campaign presentation materials, donor tracking workflows, and technology requirements for Phase One of the proposed center.",
+        "Who It Serves: The leadership team at SOAR Special Needs, community stakeholders, and the hundreds of families seeking permanent day and respite programming.",
+        "Practical Outcome: Created structured, professional campaign deliverables and operational models that help donors understand both immediate milestones and multi-year impact."
       ],
-      story: "SOAR Special Needs does exceptional work providing care, support, and community for individuals with disabilities. Helping plan the operations and systems for the future SOAR Life Center ensures the organization can scale its life-changing services efficiently."
+      story: "Turning a visionary community project into a tangible plan requires translating big dreams into structured steps, milestones, and sustainable operational models."
     },
     {
       title: "Multimedia Club Newsletters",
       category: "Visual Storytelling",
-      description: "Interactive digital newsletters for car clubs and community organizations combining stories, photography, sponsor recognition, and event highlights.",
+      description: "Created dynamic digital publications combining high-resolution photojournalism, event narratives, and sponsor visibility for automotive enthusiast clubs.",
       tags: ["Publishing", "Media", "Photography", "Community"],
       status: "Active",
       cta: "View Details",
       link: "#",
       details: [
-        "Digital-First Layouts: Interactive publications that integrate high-resolution event photography, clickable links, video embeds, and QR codes.",
-        "Community Showcase: Highlighting member stories, volunteer achievements, and automotive culture to foster belonging and member retention.",
-        "Sponsor Value: Giving local sponsors clean, trackable visibility that supports club fundraising and charity initiatives."
+        "The Problem: Traditional club newsletters were delivered as static, low-resolution PDFs with print-era layouts that failed to engage members on mobile devices.",
+        "What Was Built: A modern digital publishing template featuring rich photo galleries, embedded event recaps, hyperlinked sponsor directories, and accessible typographic layouts.",
+        "Who It Serves: Club members, event organizers, and local business sponsors whose community partnerships support charitable club donations.",
+        "Practical Outcome: Elevated member engagement, increased sponsor visibility, and established an enduring photographic archive of club heritage."
       ],
-      story: "Club newsletters don't have to be static PDFs designed like 1990s print flyers. By infusing modern storytelling and rich imagery, they become vibrant touchpoints that members look forward to reading every month."
+      story: "Every gathering of car enthusiasts has stories worth documenting. Infusing modern layouts and thoughtful imagery transforms routine newsletters into keepsakes."
     },
     {
-      title: "CollectorHQ Platform Overview",
+      title: "CollectorHQ Platform Architecture",
       category: "Product Architecture",
-      description: "A specialized personal collection headquarters combining provenance records, documentation, and asset management.",
+      description: "Architected the data models, provenance tracking structure, and privacy-preserving storage design for private historical collections.",
       tags: ["TypeScript", "Collections", "Architecture", "Local-First"],
       status: "Designing",
-      cta: "View Concept",
+      cta: "View Architecture",
       link: "#",
       details: [
-        "Flexible Schema: Designed to accommodate anything from vintage automobiles and parts to historical artifacts and art.",
-        "Document Vault: Secure storage for titles, restoration receipts, appraisals, and historical certificates.",
-        "Zero Cloud Dependency Option: Architecture prioritizes personal data ownership and offline resilience."
+        "The Problem: Serious collectors often manage valuations, restoration documentation, and purchase histories across fragmented notes, physical receipts, and disconnected spreadsheets.",
+        "What Was Contributed: Flexible entity-relationship data schemas, document archival conventions, and backup protocols tailored to collectibles and historical artifacts.",
+        "Who It Serves: Collectors, restorers, and family historians who need durable, structured asset documentation without reliance on bloated enterprise databases.",
+        "Practical Outcome: Established a resilient foundation where provenance records, appraisals, and condition reports remain organized, portable, and under the owner's direct control."
       ],
-      story: "Serious collectors currently juggle spreadsheets, loose paper receipts, and Dropbox folders. CollectorHQ provides one clean headquarters for everything that matters about what you've preserved."
+      story: "Preserving historical items is as much about documenting their story and provenance as maintaining the physical objects themselves."
     }
   ] as ProjectItem[],
   workshop: [
@@ -198,15 +206,15 @@ export const siteData = {
       status: "Active Lab",
       details: [
         "Single-Purpose Tools: Focused utilities proving that helpful software doesn't need to be huge, expensive, or bloated.",
-        "AI-Assisted Build Workflows: Exploring modern LLM techniques that allow solo experienced builders to build and test robust tools in hours.",
-        "Civic Tech Starter Kits: Simple, transparent templates for clubs and grassroots nonprofits transitioning off paper."
+        "AI-Assisted Acceleration: Leveraging modern LLMs to compress ideation, boilerplate, and prototyping phases from weeks to hours.",
+        "Real-World Testing: Deploying prototypes with real users quickly to learn what is actually useful."
       ]
     },
     {
       id: "home-automation",
-      title: "Smart Home & Practical Automation",
-      category: "Automation Lab",
-      description: "Local-first home sensors, ambient notifications, automated safety routines, and fall-prevention lighting for comfort and independent living.",
+      title: "Private & Resilient Home Automation",
+      category: "Local-First Systems",
+      description: "Architecting a secure, cloud-independent smart home environment prioritizing privacy, family safety, and tactile wall controls.",
       tags: ["Home Assistant", "Zigbee", "Local-First", "Safety"],
       icon: Home,
       status: "Ongoing Setup",
@@ -249,6 +257,7 @@ export const siteData = {
     copy: "My career was spent in technology leadership, working with teams to design systems, solve complex problems, and deliver software that served real operations. Retirement from the corporate world didn’t end that curiosity — it redirected it. Today, I dedicate my time to hands-on building: creating practical software for nonprofits and community groups, exploring photography and visual storytelling, experimenting in the workshop with home automation and 3D printing, and helping people who do good work."
   },
   contact: {
-    email: "jim@jimlucke.com"
+    email: "jim@jimlucke.com",
+    linkedin: "" // Configurable placeholder: Set to verified profile URL (e.g. "https://www.linkedin.com/in/...") when available
   }
 };
