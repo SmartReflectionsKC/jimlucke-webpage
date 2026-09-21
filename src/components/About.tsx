@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 
 export function About() {
   return (
-    <section id="about" className="py-24 bg-slate-900/30 border-y border-white/5">
+    <section id="about" className="py-24 bg-slate-900/30 border-y border-white/5 scroll-mt-20">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           

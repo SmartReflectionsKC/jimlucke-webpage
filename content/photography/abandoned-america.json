@@ -1,0 +1,16 @@
+{
+  "id": "abandoned-america",
+  "title": "Abandoned America",
+  "description": "Echoes of industry, forgotten farmsteads, and roadside Americana that tell quiet stories of time moving on.",
+  "date": "2026-05-15",
+  "coverImage": "/images/photography/abandon-house.jpeg",
+  "displayOrder": 1,
+  "published": true,
+  "images": [
+    {
+      "src": "/images/photography/abandon-house.jpeg",
+      "alt": "Decaying wooden farmhouse against an overcast Midwestern sky",
+      "caption": "Weathered timbers and quiet isolation on a rural backroad."
+    }
+  ]
+}

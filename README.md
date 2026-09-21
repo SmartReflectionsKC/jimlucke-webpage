@@ -29,11 +29,20 @@ Images are stored in the `public/images/` directory (which will be served at `/i
 
 ## How to Build
 
-To generate the production-ready static files:
+To validate content and generate the production-ready static files:
 ```bash
-npm run build
+npm run validate # Validates all Field Notes and Photography manifests
+npm run build    # Validates and builds production static bundle to dist/
 ```
-This will create a `build` folder containing `index.html` and the `assets/` folder.
+This will run the content validator and create a clean `dist/` folder containing `index.html` and the `assets/` folder.
+
+## Editing Content & Photography
+
+Please refer to the comprehensive [CONTENT_GUIDE.md](file:///Users/jdl/Documents/GitHub/jimlucke-website/jimlucke-webpage/CONTENT_GUIDE.md) for full instructions on:
+- Writing new Field Notes in Markdown (`content/field-notes/`)
+- Adding Photography Galleries via JSON manifests (`content/photography/`)
+- Draft vs. published workflows
+- Image sizing and optimization guidelines
 
 ## Deployment
 
@@ -42,18 +51,17 @@ This will create a `build` folder containing `index.html` and the `assets/` fold
 1. Run `npm run build` locally.
 2. Log into your Hostinger control panel (or connect via FTP).
 3. Open the File Manager and navigate to your `public_html` directory for `jimlucke.com`.
-4. Upload all contents **inside** the generated `build` folder (not the folder itself) into `public_html`.
-5. *Note on Caching: After uploading, you may need to clear your Hostinger cache (often via a 'Flush Cache' button in the dashboard) or do a hard refresh in your browser (Ctrl + F5 / Cmd + Shift + R).*
+4. Upload all contents **inside** the generated `dist/` folder (not the folder itself) into `public_html`.
+5. *Note on Caching: After uploading, clear your Hostinger cache (often via a 'Flush Cache' button in the dashboard) or do a hard refresh in your browser (Ctrl + F5 / Cmd + Shift + R).*
 
 ### Automated Deployment (GitHub to Hostinger)
 
 Hostinger supports automatic deployment from GitHub:
-1. Push this repository to a GitHub account.
+1. Push this repository to GitHub.
 2. In Hostinger, go to Advanced -> GIT.
 3. Connect your repository.
 4. Set the deployment branch (usually `main`).
-5. Ensure Hostinger runs the build script (`npm run build`) and publishes the `build` folder, OR build it via GitHub Actions and push the `build` contents to a deployment branch. 
-*(Consult Hostinger's documentation for specific Auto-Deployment settings for Node.js/Vite apps).*
+5. Ensure Hostinger runs `npm run build` and publishes the `dist` folder.
 
 ## Technologies Used
 

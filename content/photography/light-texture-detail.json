@@ -1,0 +1,21 @@
+{
+  "id": "light-texture-detail",
+  "title": "Light, Texture & Detail",
+  "description": "Abstract patterns, architectural geometry, winter shadows, and micro-contrasts.",
+  "date": "2026-02-18",
+  "coverImage": "/images/photography/snow-light-dark.jpeg",
+  "displayOrder": 6,
+  "published": true,
+  "images": [
+    {
+      "src": "/images/photography/snow-light-dark.jpeg",
+      "alt": "High contrast black and white snow patterns and winter shadows",
+      "caption": "Minimalist winter textures created by cold light and crisp shadows."
+    },
+    {
+      "src": "/images/photography/texture-light.jpeg",
+      "alt": "Subtle surface textures and warm gradient light",
+      "caption": "Exploring organic surfaces and ambient light play."
+    }
+  ]
+}

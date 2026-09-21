@@ -1,0 +1,26 @@
+{
+  "id": "corvette-culture",
+  "title": "Corvette Culture",
+  "description": "Lines, curves, chrome, and fiberglass from car meets, cruises, and the garage.",
+  "date": "2026-06-10",
+  "coverImage": "/images/photography/artist-c3.jpeg",
+  "displayOrder": 3,
+  "published": true,
+  "images": [
+    {
+      "src": "/images/photography/artist-c3.jpeg",
+      "alt": "Classic Corvette C3 captured with dramatic reflections and artistic angles",
+      "caption": "Sculpted fender lines of a classic third-generation Corvette."
+    },
+    {
+      "src": "/images/photography/1969c3.jpeg",
+      "alt": "Front view of a vintage 1969 Corvette Stingray",
+      "caption": "1969 Corvette Stingray detailing and timeless proportions."
+    },
+    {
+      "src": "/images/photography/bw-69-side.jpeg",
+      "alt": "Black and white profile of a 1969 Corvette highlighting body lines",
+      "caption": "Monochrome study of high-contrast automotive curves."
+    }
+  ]
+}
