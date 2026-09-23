@@ -11,6 +11,8 @@
     "lint": "tsc --noEmit",
     "build": "npm run validate && vite build && npm run scan-secrets",
     "preview": "vite preview",
+    "migrate:sanity:dry-run": "tsx scripts/migration/cli.ts",
+    "migrate:sanity:execute": "tsx scripts/migration/cli.ts --execute",
     "clean": "rm -rf dist server.js"
   },
   "dependencies": {
@@ -35,6 +37,8 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
+    "image-size": "^2.0.4",
+    "mdast-util-from-markdown": "^2.0.3",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
