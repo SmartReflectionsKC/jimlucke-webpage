@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "migrate:sanity:dry-run": "tsx scripts/migration/cli.ts",
     "migrate:sanity:execute": "tsx scripts/migration/cli.ts --execute",
+    "migrate:sanity:rollback": "tsx scripts/migration/cli.ts --rollback",
     "clean": "rm -rf dist server.js"
   },
   "dependencies": {

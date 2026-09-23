@@ -511,9 +511,12 @@ test('Deterministic IDs: generates stable IDs and preserves photo order', () => 
   const corvette = result1.plannedGalleries.find((g) => g.slug.current === 'corvette-culture');
   assert.ok(corvette);
   assert.equal(corvette?.photos.length, 3);
-  assert.equal(corvette?.photos[0]._ref, 'photo.corvette-culture.0');
-  assert.equal(corvette?.photos[1]._ref, 'photo.corvette-culture.1');
-  assert.equal(corvette?.photos[2]._ref, 'photo.corvette-culture.2');
+  assert.ok(corvette?.photos[0]._ref.startsWith('photo.corvette-culture.artist-c3_'));
+  assert.ok(corvette?.photos[1]._ref.startsWith('photo.corvette-culture.1969c3_'));
+  assert.ok(corvette?.photos[2]._ref.startsWith('photo.corvette-culture.bw-69-side_'));
+  for (const ref of corvette!.photos) {
+    assert.match(ref._key, /^k_[a-f0-9]{12}$/, 'Reference key must be Sanity-safe deterministic hash key');
+  }
 });
 
 // -------------------------------------------------------------

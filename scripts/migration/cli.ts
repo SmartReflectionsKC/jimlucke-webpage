@@ -5,22 +5,102 @@
  *   npm run migrate:sanity:dry-run   (runs preflight without writes)
  *   npm run migrate:sanity:execute   (requires --execute and SANITY_AUTH_TOKEN; fails closed if preflight fails)
  */
-
+import fs from 'node:fs';
+import path from 'node:path';
+import { createClient } from '@sanity/client';
 import { runPreflight } from './preflight';
 import { generateMigrationReport } from './report';
-import { getMigrationConfig } from './config';
+import {
+  getMigrationConfig,
+  validateExecutionCeremony,
+  enforceGitCleanliness,
+} from './config';
+import { executeMigration } from './executor';
+import { performRollback, loadManifestFromDisk } from './rollback';
 
 async function main() {
   const args = process.argv.slice(2);
   const isExecuteRequested = args.includes('--execute');
+  const isRollbackRequested = args.includes('--rollback');
 
-  console.log('🚀 Running Sanity Migration Preflight (Phase 3A)...');
+  // =========================================================================
+  // Command 1: Rollback Mode
+  // =========================================================================
+  if (isRollbackRequested) {
+    console.log('🔄 Running Sanity Migration Rollback Engine...');
+    const isDryRun = !args.includes('--confirm');
+    console.log(`Mode: ${isDryRun ? 'DRY-RUN PREVIEW (pass --confirm for real rollback)' : 'ACTIVE ROLLBACK'}\n`);
+
+    // Locate manifest
+    const manifestArg = args.find((a) => a.startsWith('--manifest='));
+    let manifestPath = manifestArg ? manifestArg.split('=')[1].trim() : '';
+
+    if (!manifestPath) {
+      const manifestDir = path.resolve(process.cwd(), 'migration-manifests');
+      if (fs.existsSync(manifestDir)) {
+        const files = fs
+          .readdirSync(manifestDir)
+          .filter((f) => f.startsWith('manifest-') && f.endsWith('.json'))
+          .sort()
+          .reverse();
+        if (files.length > 0) {
+          manifestPath = path.join(manifestDir, files[0]);
+          console.log(`Using latest manifest: ${manifestPath}`);
+        }
+      }
+    }
+
+    if (!manifestPath) {
+      console.error('🛑 Rollback aborted: No manifest file specified or found in migration-manifests/. Specify with --manifest=<path>.');
+      process.exit(1);
+    }
+
+    const manifest = loadManifestFromDisk(manifestPath);
+    const cfg = getMigrationConfig(true); // requires token
+
+    const client = createClient({
+      projectId: cfg.projectId,
+      dataset: cfg.dataset,
+      apiVersion: cfg.apiVersion,
+      useCdn: false,
+      token: cfg.authToken,
+    });
+
+    const rollbackResult = await performRollback(client, manifest, { dryRun: isDryRun });
+
+    console.log('\n📊 Rollback Results:');
+    console.log(`   - Status:                  ${rollbackResult.success ? 'SUCCESS' : 'FAILED'}`);
+    console.log(`   - Restored Documents:      ${rollbackResult.restoredDocumentCount}`);
+    console.log(`   - Deleted Documents:       ${rollbackResult.deletedDocumentCount}`);
+    console.log(`   - Deleted Assets:          ${rollbackResult.deletedAssetCount}`);
+    console.log(`   - Retained (Referenced):   ${rollbackResult.retainedAssetCount}`);
+    console.log(`   - Retained (Reused/Prior): ${rollbackResult.retainedReusedAssetCount}`);
+
+    if (rollbackResult.manualReviewAssets.length > 0) {
+      console.log('\n⚠️  Assets Retained for Manual Review:');
+      for (const assetId of rollbackResult.manualReviewAssets) {
+        console.log(`   - ${assetId}`);
+      }
+    }
+
+    if (rollbackResult.errors.length > 0) {
+      console.error('\n❌ Rollback Errors:');
+      for (const err of rollbackResult.errors) {
+        console.error(`   - ${err}`);
+      }
+      process.exit(1);
+    }
+
+    process.exit(0);
+  }
+
+  // =========================================================================
+  // Command 2: Preflight (Always runs in-memory first)
+  // =========================================================================
+  console.log('🚀 Running Sanity Migration Preflight...');
   console.log(`Mode: ${isExecuteRequested ? 'EXECUTE (Requested)' : 'DRY-RUN (Safe Preflight)'}\n`);
 
-  // Run full preflight
   const preflightResult = runPreflight();
-
-  // Generate Markdown and JSON reports
   const { markdownReportPath, jsonReportPath, reportData } =
     generateMigrationReport(preflightResult);
 
@@ -28,7 +108,6 @@ async function main() {
   console.log(`   - Markdown: ${markdownReportPath}`);
   console.log(`   - JSON:     ${jsonReportPath}\n`);
 
-  // Print Summary
   console.log('📊 Summary of Planned Content:');
   console.log(`   - Field Notes:         ${reportData.summary.fieldNoteCount} documents`);
   console.log(`   - Photography:         ${reportData.summary.galleryCount} galleries`);
@@ -63,38 +142,55 @@ async function main() {
       }
     });
     console.error('\n🚫 Execution is NOT permitted until all blocking errors are resolved.');
+    process.exit(1);
   }
 
-  // Handle execution request safety
+  // =========================================================================
+  // Command 3: Execution Request Handling
+  // =========================================================================
   if (isExecuteRequested) {
-    if (!preflightResult.valid) {
-      console.error('\n🛑 EXECUTION ABORTED: Preflight failed with blocking errors. Migration will not proceed.');
+    // 1. Ceremony verification
+    validateExecutionCeremony(args);
+
+    // 2. Git status verification
+    enforceGitCleanliness(process.cwd());
+
+    // 3. Credential verification (must fail closed if token is absent)
+    const cfg = getMigrationConfig(true);
+
+    const client = createClient({
+      projectId: cfg.projectId,
+      dataset: cfg.dataset,
+      apiVersion: cfg.apiVersion,
+      useCdn: false,
+      token: cfg.authToken,
+    });
+
+    console.log('⚡ Starting Real Migration Execution (Phase 3B)...');
+    const result = await executeMigration({
+      client,
+      preflightResult, // Amendment 6: exact in-memory plan
+      requireGitClean: true,
+      allowAnyBranch: false,
+    });
+
+    if (!result.success) {
+      console.error(`\n🛑 EXECUTION FAILED: ${result.error}`);
+      console.error(`Partial run manifest saved to: ${result.manifestPath}`);
       process.exit(1);
     }
 
-    try {
-      getMigrationConfig(true);
-    } catch (err: any) {
-      console.error(`\n🛑 EXECUTION ABORTED: ${err.message}`);
-      process.exit(1);
-    }
-
-    // Strict boundary for Phase 3A: No execution permitted
-    console.error('\n🛑 EXECUTION ABORTED: Phase 3A is strictly restricted to dry-run preflight. Write execution is prohibited in this phase.');
-    process.exit(1);
+    console.log(`\n✅ Migration executed and verified successfully!`);
+    console.log(`Manifest saved to: ${result.manifestPath}`);
+    process.exit(0);
   }
 
-  // Dry-run mode: exit nonzero if blocking errors exist
-  if (!preflightResult.valid) {
-    console.log('\n❌ Dry-run preflight finished with blocking errors (exit code 1).');
-    process.exit(1);
-  }
-
-  console.log('\n✅ Dry-run preflight passed cleanly with zero blocking errors.');
+  // Dry-run mode completed cleanly
+  console.log('✅ Dry-run preflight passed cleanly with zero blocking errors.');
   process.exit(0);
 }
 
 main().catch((err) => {
-  console.error('Unexpected migration preflight error:', err);
+  console.error('\n🛑 Migration error:', err.message || err);
   process.exit(1);
 });

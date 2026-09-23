@@ -17,6 +17,7 @@ export interface ImageInspectionResult {
   aspectRatio?: number;
   mimeType?: string;
   hash?: string;
+  sha1?: string;
   error?: string;
 }
 
@@ -83,6 +84,7 @@ export function inspectImageFile(absolutePath: string): ImageInspectionResult {
 
     const mimeType = type === 'jpg' ? 'image/jpeg' : `image/${type}`;
     const hash = crypto.createHash('sha256').update(buffer).digest('hex');
+    const sha1 = crypto.createHash('sha1').update(buffer).digest('hex');
 
     return {
       exists: true,
@@ -93,6 +95,7 @@ export function inspectImageFile(absolutePath: string): ImageInspectionResult {
       aspectRatio: parsed.width / parsed.height,
       mimeType,
       hash,
+      sha1,
     };
   } catch (err: any) {
     return {

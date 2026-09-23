@@ -15,6 +15,7 @@
  * as blocking preflight issues without silent omission.
  */
 
+import crypto from 'node:crypto';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { PreflightIssue, H1Finding } from './types';
 
@@ -61,12 +62,6 @@ function extractPlainText(node: any): string {
   return '';
 }
 
-let keyCounter = 0;
-function generateKey(prefix = 'k'): string {
-  keyCounter++;
-  return `${prefix}_${Date.now().toString(36)}_${keyCounter.toString(36)}`;
-}
-
 export function convertMarkdownToPortableText(
   markdown: string,
   options: ConversionOptions
@@ -76,6 +71,19 @@ export function convertMarkdownToPortableText(
   const issues: PreflightIssue[] = [];
   const h1Findings: H1Finding[] = [];
   const blocks: any[] = [];
+
+  const fileHash = crypto
+    .createHash('sha256')
+    .update(sourceFile || 'inline')
+    .digest('hex')
+    .slice(0, 8);
+  let keyCounter = 0;
+  function generateKey(prefix = 'k'): string {
+    keyCounter++;
+    const keySeed = `${fileHash}_${prefix}_${keyCounter}`;
+    const hash = crypto.createHash('sha256').update(keySeed).digest('hex').slice(0, 8);
+    return `${prefix}_${hash}`;
+  }
 
   let ast: any;
   try {

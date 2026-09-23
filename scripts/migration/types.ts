@@ -52,6 +52,7 @@ export interface PlannedAsset {
   sourcePath: string;
   canonicalPath: string;
   hash: string;
+  sha1: string;
   mimeType: string;
   width: number;
   height: number;
@@ -163,4 +164,112 @@ export interface MigrationReportData {
   blockingErrors: PreflightIssue[];
   warnings: PreflightIssue[];
   schemaMappings: SchemaMappingDetail[];
+}
+
+export interface DatasetBackupManifest {
+  backupId: string;
+  timestamp: string;
+  projectId: string;
+  dataset: string;
+  apiVersion: string;
+  runId: string;
+  documentCount: number;
+  verifiedEmpty: boolean;
+  snapshotFilePath: string;
+  snapshotSha256: string;
+}
+
+export interface DocumentSnapshotRecord {
+  _id: string;
+  _type: string;
+  doc: any;
+}
+
+export interface AssetUploadResult {
+  sourcePath: string;
+  canonicalPath: string;
+  sha256: string;
+  sha1: string;
+  targetAssetId: string;
+  mimeType: string;
+  sizeBytes: number;
+  existedBeforeRun: boolean;
+  uploadTimestamp: string;
+}
+
+export type MigrationStageName =
+  | 'preflight-check'
+  | 'git-safety-check'
+  | 'source-hash-check'
+  | 'dataset-backup'
+  | 'target-snapshot'
+  | 'asset-deduplication-and-upload'
+  | 'atomic-document-transaction'
+  | 'post-write-verification'
+  | 'manifest-finalization';
+
+export interface StageExecutionRecord {
+  stage: MigrationStageName;
+  status: 'pending' | 'in-progress' | 'completed' | 'failed' | 'skipped';
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+  details?: Record<string, any>;
+}
+
+export interface PostVerificationCheck {
+  name: string;
+  passed: boolean;
+  details?: string;
+}
+
+export interface PostVerificationResult {
+  verified: boolean;
+  checks: PostVerificationCheck[];
+  missingDocumentIds: string[];
+  typeMismatchDocumentIds: string[];
+  draftDocumentIds: string[];
+  unresolvedReferenceIds: string[];
+  assetMismatchCount: number;
+  groqFieldNoteCount: number;
+  groqGalleryCount: number;
+  error?: string;
+}
+
+export interface RunManifest {
+  runId: string;
+  timestamp: string;
+  gitCommit: string;
+  gitBranch: string;
+  projectId: string;
+  dataset: string;
+  apiVersion: string;
+  sourceContentHashes: Record<string, string>;
+  plannedDocumentIds: string[];
+  plannedAssetIds: string[];
+  backupManifest?: DatasetBackupManifest;
+  replacedDocumentSnapshots: DocumentSnapshotRecord[];
+  newlyCreatedDocumentIds: string[];
+  assetUploads: AssetUploadResult[];
+  stages: StageExecutionRecord[];
+  postVerification?: PostVerificationResult;
+  completedSuccessfully: boolean;
+  error?: string;
+}
+
+export interface RollbackOptions {
+  manifestPath: string;
+  dryRun?: boolean;
+}
+
+export interface RollbackResult {
+  success: boolean;
+  dryRun: boolean;
+  restoredDocumentCount: number;
+  deletedDocumentCount: number;
+  deletedAssetCount: number;
+  retainedAssetCount: number;
+  retainedReusedAssetCount: number;
+  manualReviewAssets: string[];
+  errors: string[];
 }

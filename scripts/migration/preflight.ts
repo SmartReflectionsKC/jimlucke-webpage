@@ -7,6 +7,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { parseFrontmatter } from '../../src/utils/frontmatter';
 import {
   PreflightResult,
@@ -184,13 +185,15 @@ export function runPreflight(options: RunPreflightOptions = {}): PreflightResult
       return {};
     }
 
-    const targetAssetId = `image-${inspection.hash}-${inspection.width}x${inspection.height}-${inspection.mimeType?.replace('image/', '') || 'jpeg'}`;
+    const format = inspection.mimeType === 'image/jpeg' ? 'jpg' : inspection.mimeType?.replace('image/', '') || 'jpg';
+    const targetAssetId = `image-${inspection.sha1 || inspection.hash}-${inspection.width}x${inspection.height}-${format}`;
 
     if (!plannedAssetsMap.has(relativePath)) {
       plannedAssetsMap.set(relativePath, {
         sourcePath: relativePath,
         canonicalPath: absolutePath,
         hash: inspection.hash,
+        sha1: inspection.sha1 || '',
         mimeType: inspection.mimeType || 'image/jpeg',
         width: inspection.width,
         height: inspection.height,
@@ -645,25 +648,51 @@ export function runPreflight(options: RunPreflightOptions = {}): PreflightResult
         }
 
         if (assetResult.asset) {
-          const photoDocId = `photo.${slug}.${idx}`;
+          const rawFilename = path.basename(imgSrc).trim();
+          const normalizedFilename = rawFilename
+            .replace(/\.[^/.]+$/, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]/g, '-');
+          const normalizedSlug = slug.trim().toLowerCase();
+          const normalizedSourcePath = (imgSrc.startsWith('/') ? imgSrc : `/${imgSrc}`)
+            .trim()
+            .toLowerCase()
+            .replace(/\\/g, '/');
+          const sourceIdentity = `${normalizedSlug}:${normalizedSourcePath}`;
+          const shortHash = crypto
+            .createHash('sha256')
+            .update(sourceIdentity)
+            .digest('hex')
+            .slice(0, 8);
+          const photoDocId = `photo.${normalizedSlug}.${normalizedFilename}_${shortHash}`;
+
+          if (seenDocIds.has(photoDocId)) {
+            issues.push({
+              severity: 'blocking',
+              category: 'duplicate-id',
+              file,
+              message: `Duplicate deterministic photo document ID: "${photoDocId}".`,
+            });
+          }
           seenDocIds.add(photoDocId);
 
           const photoDoc: PlannedPhotoDoc = {
             _id: photoDocId,
             _type: 'photo',
-            title: `${title} - Photo ${idx + 1}`,
+            title: `${title} - ${rawFilename}`,
             alt: imgAlt || 'Photograph',
             caption: imgCaption,
-            legacyFilename: path.basename(imgSrc),
+            legacyFilename: rawFilename,
             assetSourcePath: imgSrc,
             targetAssetRef: assetResult.asset.targetAssetId,
           };
           plannedPhotos.push(photoDoc);
 
+          const refKey = `k_${crypto.createHash('sha256').update(photoDocId).digest('hex').slice(0, 12)}`;
           plannedPhotoRefs.push({
             _type: 'reference',
             _ref: photoDocId,
-            _key: `p_${idx}`,
+            _key: refKey,
           });
 
           schemaMappings.push({

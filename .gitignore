@@ -9,3 +9,5 @@ coverage/
 !.env.migration.example
 .env.migration
 migration-reports/
+migration-backups/
+migration-manifests/
