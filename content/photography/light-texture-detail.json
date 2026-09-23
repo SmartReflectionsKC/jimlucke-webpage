@@ -9,13 +9,8 @@
   "images": [
     {
       "src": "/images/photography/snow-light-dark.jpeg",
-      "alt": "High contrast black and white snow patterns and winter shadows",
+      "alt": "Dense network of bare tree branches covered in fresh white snow.",
       "caption": "Minimalist winter textures created by cold light and crisp shadows."
-    },
-    {
-      "src": "/images/photography/texture-light.jpeg",
-      "alt": "Subtle surface textures and warm gradient light",
-      "caption": "Exploring organic surfaces and ambient light play."
     }
   ]
 }

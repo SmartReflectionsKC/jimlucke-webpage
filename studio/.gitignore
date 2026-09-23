@@ -1,0 +1,5 @@
+dist
+.sanity
+node_modules
+*.log
+.env*

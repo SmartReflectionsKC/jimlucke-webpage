@@ -9,7 +9,10 @@ export interface ShareableModalState {
   closeModal: () => void;
 }
 
-export function useShareableModal(): ShareableModalState {
+export function useShareableModal(
+  availableNotes?: FieldNoteItem[],
+  availableGalleries?: PhotographyGallery[]
+): ShareableModalState {
   const [activeNote, setActiveNote] = useState<FieldNoteItem | null>(null);
   const [activeGallery, setActiveGallery] = useState<PhotographyGallery | null>(null);
 
@@ -77,8 +80,8 @@ export function useShareableModal(): ShareableModalState {
     const noteSlug = params.get('note');
     const galleryId = params.get('gallery');
 
-    const allNotes = getFieldNotes();
-    const allGalleries = getPhotographyGalleries();
+    const allNotes = availableNotes !== undefined ? availableNotes : getFieldNotes();
+    const allGalleries = availableGalleries !== undefined ? availableGalleries : getPhotographyGalleries();
 
     // If both supplied, note takes precedence
     if (noteSlug && galleryId) {
@@ -123,7 +126,7 @@ export function useShareableModal(): ShareableModalState {
     // Neither param exists
     setActiveNote(null);
     setActiveGallery(null);
-  }, [replaceUrlParamClean]);
+  }, [availableNotes, availableGalleries, replaceUrlParamClean]);
 
   // Initial mount: check URL
   useEffect(() => {
@@ -178,24 +181,26 @@ export function useShareableModal(): ShareableModalState {
   }, [activeNote, activeGallery]);
 
   const openNote = useCallback((slug: string, triggerEl?: HTMLElement | null) => {
-    const note = getFieldNotes().find((n) => n.slug === slug);
+    const allNotes = availableNotes !== undefined ? availableNotes : getFieldNotes();
+    const note = allNotes.find((n) => n.slug === slug) || getFieldNotes().find((n) => n.slug === slug);
     if (note) {
       triggerElementRef.current = triggerEl || (document.activeElement as HTMLElement) || null;
       setActiveNote(note);
       setActiveGallery(null);
       updateUrlParam('note', slug);
     }
-  }, [updateUrlParam]);
+  }, [availableNotes, updateUrlParam]);
 
   const openGallery = useCallback((id: string, triggerEl?: HTMLElement | null) => {
-    const gallery = getPhotographyGalleries().find((g) => g.id === id);
+    const allGalleries = availableGalleries !== undefined ? availableGalleries : getPhotographyGalleries();
+    const gallery = allGalleries.find((g) => g.id === id) || getPhotographyGalleries().find((g) => g.id === id);
     if (gallery) {
       triggerElementRef.current = triggerEl || (document.activeElement as HTMLElement) || null;
       setActiveGallery(gallery);
       setActiveNote(null);
       updateUrlParam('gallery', id);
     }
-  }, [updateUrlParam]);
+  }, [availableGalleries, updateUrlParam]);
 
   const closeModal = useCallback(() => {
     setActiveNote(null);

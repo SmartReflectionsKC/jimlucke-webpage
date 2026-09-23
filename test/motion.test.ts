@@ -66,11 +66,16 @@ test('Motion: cards are fully visible immediately after internal navigation', ()
     getElementById: (id: string) => (id === 'projects' ? mockTarget : null),
   };
 
-  const event = { preventDefault: () => {} };
-  handleSectionNavigation(event, '#projects');
+  try {
+    const event = { preventDefault: () => {} };
+    handleSectionNavigation(event, '#projects');
 
-  // Verify that cards inside the navigated section use immediate full opacity props
-  const cardProps = getCardMotionProps(0, false);
-  assert.equal((cardProps.initial as any).opacity, 1, 'Cards must render with opacity: 1 on navigated section');
-  assert.ok(cardProps.viewport.margin.includes('100px'), 'Pre-triggers entrance 100px before scroll settles');
+    // Verify that cards inside the navigated section use immediate full opacity props
+    const cardProps = getCardMotionProps(0, false);
+    assert.equal((cardProps.initial as any).opacity, 1, 'Cards must render with opacity: 1 on navigated section');
+    assert.ok(cardProps.viewport.margin.includes('100px'), 'Pre-triggers entrance 100px before scroll settles');
+  } finally {
+    delete (global as any).window;
+    delete (global as any).document;
+  }
 });

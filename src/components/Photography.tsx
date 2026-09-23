@@ -1,19 +1,31 @@
 import { useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { Camera, X, Calendar, Image as ImageIcon } from "lucide-react";
+import { Camera, X, Calendar, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { PhotographyGallery, getPhotographyGalleries } from "../utils/contentLoader";
 import { useFocusTrap } from "../utils/useShareableModal";
 import { getCardMotionProps } from "../utils/motion";
 
 interface PhotographyProps {
+  galleries?: PhotographyGallery[];
+  loading?: boolean;
+  error?: string | null;
+  retry?: () => void;
   activeGallery: PhotographyGallery | null;
   onOpenGallery: (id: string, triggerEl?: HTMLElement | null) => void;
   onCloseGallery: () => void;
 }
 
-export function Photography({ activeGallery, onOpenGallery, onCloseGallery }: PhotographyProps) {
+export function Photography({
+  galleries: propGalleries,
+  loading = false,
+  error = null,
+  retry,
+  activeGallery,
+  onOpenGallery,
+  onCloseGallery,
+}: PhotographyProps) {
   const shouldReduceMotion = useReducedMotion();
-  const galleries = getPhotographyGalleries();
+  const galleries = propGalleries !== undefined ? propGalleries : getPhotographyGalleries();
   const modalRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(Boolean(activeGallery), modalRef);
@@ -35,54 +47,99 @@ export function Photography({ activeGallery, onOpenGallery, onCloseGallery }: Ph
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {galleries.map((gallery, index) => (
-            <motion.div
-              key={gallery.id}
-              {...getCardMotionProps(index, Boolean(shouldReduceMotion))}
-              tabIndex={0}
-              role="button"
-              aria-haspopup="dialog"
-              onClick={(e) => onOpenGallery(gallery.id, e.currentTarget)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onOpenGallery(gallery.id, e.currentTarget);
-                }
-              }}
-              className="group relative aspect-[4/5] rounded-2xl overflow-hidden bg-slate-800 cursor-pointer border border-white/10 hover:border-purple-500/40 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all duration-500 shadow-lg"
-            >
-              {/* Cover Image */}
+        {/* Loading Skeletons */}
+        {loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" aria-label="Loading photography galleries">
+            {[1, 2, 3].map((i) => (
               <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{
-                  backgroundImage: `url(${gallery.coverImage}), linear-gradient(to bottom right, #1e293b, #0f172a)`
-                }}
-              />
-
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
-
-              {/* Content */}
-              <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                <div className="flex items-center gap-2 text-xs font-mono text-purple-300 mb-2">
-                  <ImageIcon size={14} />
-                  <span>{gallery.images.length} {gallery.images.length === 1 ? 'Photo' : 'Photos'}</span>
-                </div>
-
-                <h3 className="text-xl font-display font-semibold text-white mb-2 group-hover:text-purple-300 transition-colors">
-                  {gallery.title}
-                </h3>
-
-                <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed mb-3">
-                  {gallery.description}
-                </p>
-
-                <div className="w-8 h-0.5 bg-purple-500 opacity-60 group-hover:w-16 group-hover:opacity-100 transition-all duration-300"></div>
+                key={i}
+                className="aspect-[4/5] rounded-2xl bg-slate-850 animate-pulse border border-white/5 flex flex-col justify-end p-6 bg-slate-800/60"
+              >
+                <div className="h-3 bg-slate-700/60 rounded w-20 mb-3" />
+                <div className="h-6 bg-slate-700/60 rounded w-3/4 mb-3" />
+                <div className="h-3 bg-slate-700/60 rounded w-full mb-2" />
+                <div className="h-3 bg-slate-700/60 rounded w-1/2" />
               </div>
-            </motion.div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error State */}
+        {!loading && error && galleries.length === 0 && (
+          <div className="glass-panel p-8 text-center max-w-lg mx-auto border-red-500/20 bg-red-500/5 my-8">
+            <p className="text-slate-300 text-sm mb-4">{error}</p>
+            {retry && (
+              <button
+                onClick={retry}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-purple-500 hover:bg-purple-400 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400"
+              >
+                <RefreshCw size={14} />
+                Retry Loading
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && galleries.length === 0 && (
+          <div className="glass-panel p-12 text-center max-w-lg mx-auto border border-white/10 my-8">
+            <Camera size={28} className="text-slate-500 mx-auto mb-3" />
+            <h3 className="text-lg font-display font-semibold text-white mb-1">No Galleries Found</h3>
+            <p className="text-sm text-slate-400">Published photography collections will appear here.</p>
+          </div>
+        )}
+
+        {/* Galleries Grid */}
+        {!loading && galleries.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {galleries.map((gallery, index) => (
+              <motion.div
+                key={gallery.id}
+                {...getCardMotionProps(index, Boolean(shouldReduceMotion))}
+                tabIndex={0}
+                role="button"
+                aria-haspopup="dialog"
+                onClick={(e) => onOpenGallery(gallery.id, e.currentTarget)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpenGallery(gallery.id, e.currentTarget);
+                  }
+                }}
+                className="group relative aspect-[4/5] rounded-2xl overflow-hidden bg-slate-800 cursor-pointer border border-white/10 hover:border-purple-500/40 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all duration-500 shadow-lg"
+              >
+                {/* Cover Image */}
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                  style={{
+                    backgroundImage: `url(${gallery.coverImage}), linear-gradient(to bottom right, #1e293b, #0f172a)`
+                  }}
+                />
+
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
+
+                {/* Content */}
+                <div className="absolute inset-0 p-6 flex flex-col justify-end">
+                  <div className="flex items-center gap-2 text-xs font-mono text-purple-300 mb-2">
+                    <ImageIcon size={14} />
+                    <span>{gallery.images.length} {gallery.images.length === 1 ? 'Photo' : 'Photos'}</span>
+                  </div>
+
+                  <h3 className="text-xl font-display font-semibold text-white mb-2 group-hover:text-purple-300 transition-colors">
+                    {gallery.title}
+                  </h3>
+
+                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed mb-3">
+                    {gallery.description}
+                  </p>
+
+                  <div className="w-8 h-0.5 bg-purple-500 opacity-60 group-hover:w-16 group-hover:opacity-100 transition-all duration-300"></div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Gallery Viewer Dialog */}
@@ -149,6 +206,8 @@ export function Photography({ activeGallery, onOpenGallery, onCloseGallery }: Ph
                       <div className="rounded-xl overflow-hidden bg-slate-950 border border-white/10 shadow-lg">
                         <img
                           src={image.src}
+                          srcSet={image.srcSet || undefined}
+                          sizes={image.sizes || undefined}
                           alt={image.alt}
                           loading="lazy"
                           className="w-full h-auto max-h-[70vh] object-contain mx-auto"

@@ -289,3 +289,130 @@ test('Content: CredibilityStrip avoids permanent campus claim and LinkedIn is co
     'Connect component must not show a fallback email action for LinkedIn'
   );
 });
+
+test('Content Validation Safeguards: enforces coverImageAlt, zero-byte checks, and gallery cover resolution', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const os = await import('node:os');
+
+  const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'content-val-test-'));
+  const fieldNotesDir = path.join(tmpBase, 'field-notes');
+  const photographyDir = path.join(tmpBase, 'photography');
+  const publicDir = path.join(tmpBase, 'public');
+
+  fs.mkdirSync(fieldNotesDir, { recursive: true });
+  fs.mkdirSync(photographyDir, { recursive: true });
+  fs.mkdirSync(path.join(publicDir, 'images'), { recursive: true });
+
+  // Create a valid image (non-zero bytes)
+  const validImgPath = path.join(publicDir, 'images', 'valid.jpg');
+  fs.writeFileSync(validImgPath, Buffer.from([0xff, 0xd8, 0xff, 0xe0]));
+
+  // Create a zero-byte image
+  const zeroImgPath = path.join(publicDir, 'images', 'zero.jpg');
+  fs.writeFileSync(zeroImgPath, Buffer.alloc(0));
+
+  try {
+    // 1. Field Note with coverImage lacking nonblank coverImageAlt
+    fs.writeFileSync(
+      path.join(fieldNotesDir, 'note-no-alt.md'),
+      `---
+title: "Note No Alt"
+date: "2026-09-01"
+summary: "Testing missing coverImageAlt"
+category: "Practical Tech"
+published: true
+coverImage: "/images/valid.jpg"
+---
+Body text
+`
+    );
+    const res1 = validateAllContent({ fieldNotesDir, photographyDir, publicDir });
+    assert.equal(res1.valid, false);
+    assert.ok(
+      res1.errors.some((e) => e.message.includes('missing required nonblank "coverImageAlt"')),
+      'Must flag missing coverImageAlt'
+    );
+    fs.unlinkSync(path.join(fieldNotesDir, 'note-no-alt.md'));
+
+    // 2. Referenced image is zero bytes
+    fs.writeFileSync(
+      path.join(fieldNotesDir, 'note-zero-img.md'),
+      `---
+title: "Note Zero Img"
+date: "2026-09-01"
+summary: "Testing zero byte image"
+category: "Practical Tech"
+published: true
+coverImage: "/images/zero.jpg"
+coverImageAlt: "Valid alt description for image"
+---
+Body text
+`
+    );
+    const res2 = validateAllContent({ fieldNotesDir, photographyDir, publicDir });
+    assert.equal(res2.valid, false);
+    assert.ok(
+      res2.errors.some((e) => e.message.includes('references zero-byte file')),
+      'Must flag zero-byte image file'
+    );
+    fs.unlinkSync(path.join(fieldNotesDir, 'note-zero-img.md'));
+
+    // 3. Gallery cover cannot resolve to one valid gallery image with alt text
+    // 3a. Cover does not match any image in images array
+    fs.writeFileSync(
+      path.join(photographyDir, 'gallery-unmatched-cover.json'),
+      JSON.stringify({
+        id: 'gallery-unmatched-cover',
+        title: 'Unmatched Cover Gallery',
+        description: 'Test gallery description.',
+        date: '2026-09-01',
+        displayOrder: 1,
+        published: true,
+        coverImage: '/images/valid.jpg',
+        images: [
+          {
+            src: '/images/other.jpg',
+            alt: 'Some valid alt text here',
+          },
+        ],
+      })
+    );
+    const res3a = validateAllContent({ fieldNotesDir, photographyDir, publicDir });
+    assert.equal(res3a.valid, false);
+    assert.ok(
+      res3a.errors.some((e) => e.message.includes('does not match any image in the "images" array and lacks "coverImageAlt"')),
+      'Must flag unmatched gallery cover lacking coverImageAlt'
+    );
+    fs.unlinkSync(path.join(photographyDir, 'gallery-unmatched-cover.json'));
+
+    // 3b. Cover matches image in array, but that image has blank / invalid alt text (< 5 chars)
+    fs.writeFileSync(
+      path.join(photographyDir, 'gallery-blank-alt-cover.json'),
+      JSON.stringify({
+        id: 'gallery-blank-alt-cover',
+        title: 'Blank Alt Cover Gallery',
+        description: 'Test gallery description.',
+        date: '2026-09-01',
+        displayOrder: 1,
+        published: true,
+        coverImage: '/images/valid.jpg',
+        images: [
+          {
+            src: '/images/valid.jpg',
+            alt: '   ',
+          },
+        ],
+      })
+    );
+    const res3b = validateAllContent({ fieldNotesDir, photographyDir, publicDir });
+    assert.equal(res3b.valid, false);
+    assert.ok(
+      res3b.errors.some((e) => e.message.includes('cannot resolve to a gallery image with valid accessible alt text')),
+      'Must flag cover matching image with blank alt text'
+    );
+    fs.unlinkSync(path.join(photographyDir, 'gallery-blank-alt-cover.json'));
+  } finally {
+    fs.rmSync(tmpBase, { recursive: true, force: true });
+  }
+});

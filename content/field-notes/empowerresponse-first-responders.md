@@ -5,6 +5,7 @@ summary: "Empower equips first responders with essential information to better s
 category: "Innovation Lab"
 tags: ["EmpowerResponse", "First Responders", "Special Needs", "Safety"]
 coverImage: "/images/photography/blm-matters.jpeg"
+coverImageAlt: "Street art on a brick wall featuring a BLM sign, an American flag, and painted symbols."
 published: true
 readTime: "3 min read"
 externalLink: ""

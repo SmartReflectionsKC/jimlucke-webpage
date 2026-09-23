@@ -19,37 +19,64 @@ function isValidDate(dateStr: string): boolean {
   return !isNaN(parsed);
 }
 
-function checkImageExists(imagePath: string, sourceFile: string, fieldName: string) {
+function checkImageExists(imagePath: string, sourceFile: string, fieldName: string, publicDir?: string) {
   if (!imagePath || typeof imagePath !== 'string') {
     addError(sourceFile, `${fieldName} is missing or empty`);
     return;
   }
 
+  const baseDir = publicDir || path.join(process.cwd(), 'public');
+
   // Handle local /images/... path
   if (imagePath.startsWith('/')) {
-    const fullPath = path.join(process.cwd(), 'public', imagePath.slice(1));
+    const fullPath = path.join(baseDir, imagePath.slice(1));
     if (!fs.existsSync(fullPath)) {
       addError(
         sourceFile,
         `${fieldName} references missing file: "${imagePath}" (looked in ${fullPath})`
       );
+    } else {
+      try {
+        const stats = fs.statSync(fullPath);
+        if (stats.size === 0) {
+          addError(sourceFile, `${fieldName} references zero-byte file: "${imagePath}"`);
+        }
+      } catch (e: any) {
+        addError(sourceFile, `Failed to inspect ${fieldName} "${imagePath}": ${e.message}`);
+      }
     }
   } else if (!imagePath.startsWith('http://') && !imagePath.startsWith('https://')) {
-    const fullPath = path.join(process.cwd(), 'public', imagePath);
+    const fullPath = path.join(baseDir, imagePath);
     if (!fs.existsSync(fullPath)) {
       addError(
         sourceFile,
         `${fieldName} references missing file: "${imagePath}"`
       );
+    } else {
+      try {
+        const stats = fs.statSync(fullPath);
+        if (stats.size === 0) {
+          addError(sourceFile, `${fieldName} references zero-byte file: "${imagePath}"`);
+        }
+      } catch (e: any) {
+        addError(sourceFile, `Failed to inspect ${fieldName} "${imagePath}": ${e.message}`);
+      }
     }
   }
 }
 
-export function validateAllContent(): { valid: boolean; errors: ValidationError[] } {
+export interface ValidateContentOptions {
+  fieldNotesDir?: string;
+  photographyDir?: string;
+  publicDir?: string;
+}
+
+export function validateAllContent(options?: ValidateContentOptions): { valid: boolean; errors: ValidationError[] } {
   errors.length = 0; // reset
 
-  const fieldNotesDir = path.join(process.cwd(), 'content', 'field-notes');
-  const photographyDir = path.join(process.cwd(), 'content', 'photography');
+  const fieldNotesDir = options?.fieldNotesDir || path.join(process.cwd(), 'content', 'field-notes');
+  const photographyDir = options?.photographyDir || path.join(process.cwd(), 'content', 'photography');
+  const publicDir = options?.publicDir;
 
   // 1. Validate Field Notes
   const seenSlugs = new Set<string>();
@@ -98,7 +125,12 @@ export function validateAllContent(): { valid: boolean; errors: ValidationError[
       }
 
       if (data.coverImage) {
-        checkImageExists(String(data.coverImage), file, 'coverImage');
+        checkImageExists(String(data.coverImage), file, 'coverImage', publicDir);
+        if (!data.coverImageAlt || typeof data.coverImageAlt !== 'string' || !data.coverImageAlt.trim()) {
+          addError(file, 'Field Note has "coverImage" but is missing required nonblank "coverImageAlt"');
+        } else if (data.coverImageAlt.trim().length < 5) {
+          addError(file, 'Field Note "coverImageAlt" is too short (minimum 5 characters)');
+        }
       }
 
       // Check inline Markdown images: ![alt](url)
@@ -106,7 +138,7 @@ export function validateAllContent(): { valid: boolean; errors: ValidationError[
       let match: RegExpExecArray | null;
       while ((match = imageRegex.exec(content)) !== null) {
         const imageSrc = match[2];
-        checkImageExists(imageSrc, file, `Inline Markdown image "${imageSrc}"`);
+        checkImageExists(imageSrc, file, `Inline Markdown image "${imageSrc}"`, publicDir);
       }
     }
   } else {
@@ -167,7 +199,7 @@ export function validateAllContent(): { valid: boolean; errors: ValidationError[
       if (!manifest.coverImage) {
         addError(file, 'Missing required field: "coverImage"');
       } else {
-        checkImageExists(manifest.coverImage, file, 'coverImage');
+        checkImageExists(manifest.coverImage, file, 'coverImage', publicDir);
       }
 
       if (!Array.isArray(manifest.images) || manifest.images.length === 0) {
@@ -177,13 +209,38 @@ export function validateAllContent(): { valid: boolean; errors: ValidationError[
           if (!img.src || typeof img.src !== 'string') {
             addError(file, `Image at index ${idx} is missing "src" string`);
           } else {
-            checkImageExists(img.src, file, `images[${idx}].src`);
+            checkImageExists(img.src, file, `images[${idx}].src`, publicDir);
           }
 
           if (!img.alt || typeof img.alt !== 'string' || !img.alt.trim()) {
             addError(file, `Image at index ${idx} ("${img.src || 'unknown'}") is missing required accessible "alt" text`);
           }
         });
+
+        // Gallery cover resolution check:
+        // A gallery cover must resolve to at least one valid gallery image with accessible alt text
+        // (or have an explicit nonblank coverImageAlt).
+        const explicitCoverAlt = typeof manifest.coverImageAlt === 'string' && manifest.coverImageAlt.trim();
+        if (!explicitCoverAlt && manifest.coverImage) {
+          const matchingImages = manifest.images.filter(
+            (img: any) => img && typeof img.src === 'string' && img.src === manifest.coverImage
+          );
+          const validMatchingImages = matchingImages.filter(
+            (img: any) => typeof img.alt === 'string' && img.alt.trim().length >= 5
+          );
+
+          if (matchingImages.length === 0) {
+            addError(
+              file,
+              `Gallery "coverImage" ("${manifest.coverImage}") does not match any image in the "images" array and lacks "coverImageAlt"`
+            );
+          } else if (validMatchingImages.length === 0) {
+            addError(
+              file,
+              `Gallery "coverImage" ("${manifest.coverImage}") cannot resolve to a gallery image with valid accessible alt text (minimum 5 characters)`
+            );
+          }
+        }
       }
     }
   } else {

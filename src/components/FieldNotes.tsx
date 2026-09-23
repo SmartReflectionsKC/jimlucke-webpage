@@ -1,21 +1,43 @@
 import { useRef } from "react";
-import { ArrowRight, BookOpen, X, Clock, Calendar } from "lucide-react";
+import { ArrowRight, BookOpen, X, Clock, Calendar, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Markdown from "react-markdown";
 import { FieldNoteItem, getFieldNotes } from "../utils/contentLoader";
 import { useFocusTrap } from "../utils/useShareableModal";
 import { getCardMotionProps } from "../utils/motion";
+import { useFieldNoteDetail } from "../sanity/useContent";
+import { PortableTextRenderer } from "./PortableTextRenderer";
 
 interface FieldNotesProps {
+  notes?: FieldNoteItem[];
+  loading?: boolean;
+  error?: string | null;
+  retry?: () => void;
   activeNote: FieldNoteItem | null;
   onOpenNote: (slug: string, triggerEl?: HTMLElement | null) => void;
   onCloseNote: () => void;
 }
 
-export function FieldNotes({ activeNote, onOpenNote, onCloseNote }: FieldNotesProps) {
+export function FieldNotes({
+  notes: propNotes,
+  loading = false,
+  error = null,
+  retry,
+  activeNote,
+  onOpenNote,
+  onCloseNote,
+}: FieldNotesProps) {
   const shouldReduceMotion = useReducedMotion();
-  const notes = getFieldNotes();
+  const notes = propNotes !== undefined ? propNotes : getFieldNotes();
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // Asynchronous detail loading for active note is kept strictly separate from URL sync
+  const {
+    detail: activeDetail,
+    loading: detailLoading,
+    error: detailError,
+    retry: retryDetail,
+  } = useFieldNoteDetail(activeNote?.slug, activeNote);
 
   useFocusTrap(Boolean(activeNote), modalRef);
 
@@ -41,56 +63,105 @@ export function FieldNotes({ activeNote, onOpenNote, onCloseNote }: FieldNotesPr
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {notes.map((note, index) => (
-            <motion.div
-              key={note.slug}
-              {...getCardMotionProps(index, Boolean(shouldReduceMotion))}
-              tabIndex={0}
-              role="button"
-              aria-haspopup="dialog"
-              onClick={(e) => onOpenNote(note.slug, e.currentTarget)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onOpenNote(note.slug, e.currentTarget);
-                }
-              }}
-              className="glass-panel p-7 flex flex-col justify-between group cursor-pointer hover:border-amber-500/40 hover:shadow-[0_0_25px_rgba(245,158,11,0.06)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
-            >
-              <div>
-                <div className="w-10 h-10 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center mb-6 group-hover:bg-amber-500/10 group-hover:text-amber-400 transition-colors">
-                  <BookOpen size={18} className="text-slate-400 group-hover:text-amber-400" />
+        {/* Loading Skeleton */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-label="Loading articles">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="glass-panel p-7 h-72 animate-pulse flex flex-col justify-between border border-white/5"
+              >
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 mb-6" />
+                  <div className="h-3 bg-slate-800 rounded w-24 mb-3" />
+                  <div className="h-6 bg-slate-800 rounded w-3/4 mb-3" />
+                  <div className="h-4 bg-slate-800 rounded w-full mb-2" />
+                  <div className="h-4 bg-slate-800 rounded w-2/3" />
                 </div>
+                <div className="h-3 bg-slate-800 rounded w-20 pt-4 border-t border-white/5" />
+              </div>
+            ))}
+          </div>
+        )}
 
-                <div className="flex items-center gap-3 text-xs font-mono text-slate-400 mb-3">
-                  <span className="text-amber-400">{note.category}</span>
-                  {note.readTime && (
-                    <>
-                      <span className="w-1 h-1 rounded-full bg-slate-600"></span>
-                      <span>{note.readTime}</span>
-                    </>
+        {/* Error State */}
+        {!loading && error && notes.length === 0 && (
+          <div className="glass-panel p-8 text-center max-w-lg mx-auto border-red-500/20 bg-red-500/5 my-8">
+            <p className="text-slate-300 text-sm mb-4">{error}</p>
+            {retry && (
+              <button
+                onClick={retry}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                <RefreshCw size={14} />
+                Retry Loading
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && notes.length === 0 && (
+          <div className="glass-panel p-12 text-center max-w-lg mx-auto border border-white/10 my-8">
+            <BookOpen size={28} className="text-slate-500 mx-auto mb-3" />
+            <h3 className="text-lg font-display font-semibold text-white mb-1">No Field Notes Found</h3>
+            <p className="text-sm text-slate-400">Published articles will appear here.</p>
+          </div>
+        )}
+
+        {/* Card Grid */}
+        {!loading && notes.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {notes.map((note, index) => (
+              <motion.div
+                key={note.slug}
+                {...getCardMotionProps(index, Boolean(shouldReduceMotion))}
+                tabIndex={0}
+                role="button"
+                aria-haspopup="dialog"
+                onClick={(e) => onOpenNote(note.slug, e.currentTarget)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpenNote(note.slug, e.currentTarget);
+                  }
+                }}
+                className="glass-panel p-7 flex flex-col justify-between group cursor-pointer hover:border-amber-500/40 hover:shadow-[0_0_25px_rgba(245,158,11,0.06)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center mb-6 group-hover:bg-amber-500/10 group-hover:text-amber-400 transition-colors">
+                    <BookOpen size={18} className="text-slate-400 group-hover:text-amber-400" />
+                  </div>
+
+                  <div className="flex items-center gap-3 text-xs font-mono text-slate-400 mb-3">
+                    <span className="text-amber-400">{note.category}</span>
+                    {note.readTime && (
+                      <>
+                        <span className="w-1 h-1 rounded-full bg-slate-600"></span>
+                        <span>{note.readTime}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <h3 className="text-xl font-display font-semibold text-white group-hover:text-amber-400 transition-colors line-clamp-3 mb-3 leading-snug">
+                    {note.title}
+                  </h3>
+
+                  {note.summary && (
+                    <p className="text-sm text-slate-400 line-clamp-3 leading-relaxed mb-6">
+                      {note.summary}
+                    </p>
                   )}
                 </div>
 
-                <h3 className="text-xl font-display font-semibold text-white group-hover:text-amber-400 transition-colors line-clamp-3 mb-3 leading-snug">
-                  {note.title}
-                </h3>
-
-                {note.summary && (
-                  <p className="text-sm text-slate-400 line-clamp-3 leading-relaxed mb-6">
-                    {note.summary}
-                  </p>
-                )}
-              </div>
-              
-              <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-medium text-amber-400 group-hover:text-amber-300 mt-auto">
-                <span>Read Article</span>
-                <ArrowRight size={14} className="transform group-hover:translate-x-1 transition-transform" />
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-medium text-amber-400 group-hover:text-amber-300 mt-auto">
+                  <span>Read Article</span>
+                  <ArrowRight size={14} className="transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Article Modal Overlay & Dialog */}
@@ -155,61 +226,94 @@ export function FieldNotes({ activeNote, onOpenNote, onCloseNote }: FieldNotesPr
                   </p>
                 )}
 
-                {/* Safe Markdown Renderer */}
-                <div className="text-slate-300 leading-relaxed text-base md:text-lg">
-                  <Markdown
-                    components={{
-                      h1: ({ ...props }) => (
-                        <h2 className="text-2xl md:text-3xl font-display font-semibold text-white mt-10 mb-4" {...props} />
-                      ),
-                      h2: ({ ...props }) => (
-                        <h3 className="text-xl md:text-2xl font-display font-semibold text-white mt-8 mb-4 border-b border-white/5 pb-2" {...props} />
-                      ),
-                      h3: ({ ...props }) => (
-                        <h4 className="text-lg md:text-xl font-display font-medium text-white mt-6 mb-3" {...props} />
-                      ),
-                      p: ({ ...props }) => <p className="mb-6 leading-relaxed" {...props} />,
-                      ul: ({ ...props }) => <ul className="list-disc pl-6 mb-6 space-y-2 text-slate-300" {...props} />,
-                      ol: ({ ...props }) => <ol className="list-decimal pl-6 mb-6 space-y-2 text-slate-300" {...props} />,
-                      li: ({ ...props }) => <li {...props} />,
-                      a: ({ href, children, ...props }) => {
-                        const isExternal = href?.startsWith('http://') || href?.startsWith('https://');
-                        return (
-                          <a
-                            href={href}
-                            target={isExternal ? "_blank" : undefined}
-                            rel={isExternal ? "noopener noreferrer" : undefined}
-                            className="text-amber-400 hover:text-amber-300 underline underline-offset-4 font-medium transition-colors"
-                            {...props}
-                          >
-                            {children}
-                          </a>
-                        );
-                      },
-                      blockquote: ({ ...props }) => (
-                        <blockquote className="border-l-4 border-amber-500/50 pl-4 italic text-slate-400 my-6 bg-slate-800/30 py-2 rounded-r-md" {...props} />
-                      ),
-                      strong: ({ ...props }) => <strong className="font-semibold text-white" {...props} />,
-                      code: ({ ...props }) => (
-                        <code className="bg-slate-800 text-amber-200 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
-                      ),
-                      img: ({ src, alt, ...props }) => (
-                        <figure className="my-8">
-                          <img
-                            src={src}
-                            alt={alt || "Illustration"}
-                            loading="lazy"
-                            className="rounded-xl border border-white/10 max-h-96 w-full object-cover"
-                            {...props}
-                          />
-                          {alt && <figcaption className="text-xs text-slate-500 italic mt-2 text-center">{alt}</figcaption>}
-                        </figure>
-                      )
-                    }}
-                  >
-                    {activeNote.content}
-                  </Markdown>
-                </div>
+                {/* Asynchronous detail loading state in modal */}
+                {detailLoading && !activeDetail?.body && !activeDetail?.content && (
+                  <div className="space-y-4 py-8 animate-pulse" aria-label="Loading article body">
+                    <div className="h-4 bg-slate-800 rounded w-5/6"></div>
+                    <div className="h-4 bg-slate-800 rounded w-full"></div>
+                    <div className="h-4 bg-slate-800 rounded w-4/6"></div>
+                    <div className="h-4 bg-slate-800 rounded w-3/4"></div>
+                  </div>
+                )}
+
+                {/* Detail Error State in modal */}
+                {!detailLoading && detailError && !activeDetail?.body && !activeDetail?.content && (
+                  <div className="p-6 rounded-xl bg-red-500/10 border border-red-500/20 text-center my-6">
+                    <p className="text-red-400 text-sm mb-3">Unable to load article content.</p>
+                    <button
+                      onClick={retryDetail}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    >
+                      <RefreshCw size={14} />
+                      Retry
+                    </button>
+                  </div>
+                )}
+
+                {/* Render Portable Text Body (Sanity) */}
+                {activeDetail?.body && activeDetail.body.length > 0 && (
+                  <div className="text-slate-300 leading-relaxed text-base md:text-lg">
+                    <PortableTextRenderer value={activeDetail.body} />
+                  </div>
+                )}
+
+                {/* Render Safe Markdown (Local Content fallback) */}
+                {(!activeDetail?.body || activeDetail.body.length === 0) && (activeDetail?.content || activeNote.content) && (
+                  <div className="text-slate-300 leading-relaxed text-base md:text-lg">
+                    <Markdown
+                      components={{
+                        h1: ({ ...props }) => (
+                          <h2 className="text-2xl md:text-3xl font-display font-semibold text-white mt-10 mb-4" {...props} />
+                        ),
+                        h2: ({ ...props }) => (
+                          <h3 className="text-xl md:text-2xl font-display font-semibold text-white mt-8 mb-4 border-b border-white/5 pb-2" {...props} />
+                        ),
+                        h3: ({ ...props }) => (
+                          <h4 className="text-lg md:text-xl font-display font-medium text-white mt-6 mb-3" {...props} />
+                        ),
+                        p: ({ ...props }) => <p className="mb-6 leading-relaxed" {...props} />,
+                        ul: ({ ...props }) => <ul className="list-disc pl-6 mb-6 space-y-2 text-slate-300" {...props} />,
+                        ol: ({ ...props }) => <ol className="list-decimal pl-6 mb-6 space-y-2 text-slate-300" {...props} />,
+                        li: ({ ...props }) => <li {...props} />,
+                        a: ({ href, children, ...props }) => {
+                          const isExternal = href?.startsWith('http://') || href?.startsWith('https://');
+                          return (
+                            <a
+                              href={href}
+                              target={isExternal ? "_blank" : undefined}
+                              rel={isExternal ? "noopener noreferrer" : undefined}
+                              className="text-amber-400 hover:text-amber-300 underline underline-offset-4 font-medium transition-colors"
+                              {...props}
+                            >
+                              {children}
+                            </a>
+                          );
+                        },
+                        blockquote: ({ ...props }) => (
+                          <blockquote className="border-l-4 border-amber-500/50 pl-4 italic text-slate-400 my-6 bg-slate-800/30 py-2 rounded-r-md" {...props} />
+                        ),
+                        strong: ({ ...props }) => <strong className="font-semibold text-white" {...props} />,
+                        code: ({ ...props }) => (
+                          <code className="bg-slate-800 text-amber-200 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
+                        ),
+                        img: ({ src, alt, ...props }) => (
+                          <figure className="my-8">
+                            <img
+                              src={src}
+                              alt={alt || "Illustration"}
+                              loading="lazy"
+                              className="rounded-xl border border-white/10 max-h-96 w-full object-cover"
+                              {...props}
+                            />
+                            {alt && <figcaption className="text-xs text-slate-500 italic mt-2 text-center">{alt}</figcaption>}
+                          </figure>
+                        )
+                      }}
+                    >
+                      {activeDetail?.content || activeNote.content}
+                    </Markdown>
+                  </div>
+                )}
 
                 <div className="mt-12 pt-8 border-t border-white/10 flex justify-between items-center">
                   <span className="text-xs font-mono text-slate-500">
