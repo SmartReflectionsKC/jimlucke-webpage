@@ -17,13 +17,14 @@ export interface BackupOptions {
   projectId: string;
   dataset: string;
   apiVersion: string;
+  gitCommit?: string;
 }
 
 export async function performDatasetBackup(
   client: any,
   options: BackupOptions
 ): Promise<DatasetBackupManifest> {
-  const { runId, projectId, dataset, apiVersion } = options;
+  const { runId, projectId, dataset, apiVersion, gitCommit = 'HEAD' } = options;
   const backupDir = options.backupDir || path.resolve(process.cwd(), 'migration-backups');
 
   if (!fs.existsSync(backupDir)) {
@@ -58,6 +59,7 @@ export async function performDatasetBackup(
     projectId,
     dataset,
     apiVersion,
+    gitCommit,
     verifiedEmpty,
     documentCount,
     backupType: 'logical-json-document-snapshot',
@@ -101,6 +103,7 @@ export async function performDatasetBackup(
     projectId,
     dataset,
     apiVersion,
+    gitCommit,
     runId,
     documentCount,
     verifiedEmpty,

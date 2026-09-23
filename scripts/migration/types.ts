@@ -19,6 +19,7 @@ export type PreflightCategory =
   | 'empty-gallery'
   | 'duplicate-slug'
   | 'duplicate-id'
+  | 'invalid-id'
   | 'schema-constraint'
   | 'unresolved-reference';
 
@@ -70,6 +71,7 @@ export interface PlannedPhotoDoc {
   legacyFilename: string;
   assetSourcePath: string;
   targetAssetRef: string;
+  legacyDocId?: string;
 }
 
 export interface PlannedFieldNoteDoc {
@@ -91,6 +93,7 @@ export interface PlannedFieldNoteDoc {
   featured: boolean;
   body: any[];
   sourceFile: string;
+  legacyDocId?: string;
 }
 
 export interface PlannedGalleryDoc {
@@ -114,6 +117,7 @@ export interface PlannedGalleryDoc {
     _key: string;
   }>;
   sourceFile: string;
+  legacyDocId?: string;
 }
 
 export interface SchemaMappingDetail {
@@ -177,6 +181,7 @@ export interface DatasetBackupManifest {
   verifiedEmpty: boolean;
   snapshotFilePath: string;
   snapshotSha256: string;
+  gitCommit?: string;
 }
 
 export interface DocumentSnapshotRecord {
@@ -206,6 +211,10 @@ export type MigrationStageName =
   | 'asset-deduplication-and-upload'
   | 'atomic-document-transaction'
   | 'post-write-verification'
+  | 'pre-cleanup-verification'
+  | 'legacy-reference-check'
+  | 'legacy-document-cleanup'
+  | 'post-cleanup-verification'
   | 'manifest-finalization';
 
 export interface StageExecutionRecord {
@@ -233,6 +242,7 @@ export interface PostVerificationResult {
   assetMismatchCount: number;
   groqFieldNoteCount: number;
   groqGalleryCount: number;
+  anonymousVerified?: boolean;
   error?: string;
 }
 
@@ -247,12 +257,28 @@ export interface RunManifest {
   sourceContentHashes: Record<string, string>;
   plannedDocumentIds: string[];
   plannedAssetIds: string[];
+  legacyDocumentIds?: string[];
+  newDocumentIds?: string[];
+  reusedAssetIds?: string[];
+  canonicalFingerprints?: Array<{
+    docId: string;
+    expectedFingerprint: string;
+    observedFingerprint: string;
+    matched: boolean;
+    differences?: string[];
+  }>;
+  creationTransactionId?: string;
+  cleanupTransactionId?: string;
+  cleanupStatus?: 'pending' | 'completed' | 'skipped';
   backupManifest?: DatasetBackupManifest;
   replacedDocumentSnapshots: DocumentSnapshotRecord[];
+  legacyDocumentSnapshots?: DocumentSnapshotRecord[];
   newlyCreatedDocumentIds: string[];
   assetUploads: AssetUploadResult[];
   stages: StageExecutionRecord[];
   postVerification?: PostVerificationResult;
+  preCleanupVerification?: PostVerificationResult;
+  postCleanupVerification?: PostVerificationResult;
   completedSuccessfully: boolean;
   error?: string;
 }

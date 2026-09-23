@@ -496,24 +496,27 @@ test('Deterministic IDs: generates stable IDs and preserves photo order', () => 
     result2.plannedPhotos.map((p) => p._id)
   );
 
-  // Check ID prefix formats
+  // Check ID prefix formats (Amendment 2: public-safe root IDs with zero periods)
   for (const n of result1.plannedFieldNotes) {
-    assert.ok(n._id.startsWith('fieldNote.'), `Expected fieldNote.<slug>, got ${n._id}`);
+    assert.ok(n._id.startsWith('fieldNote-'), `Expected fieldNote-<slug>, got ${n._id}`);
+    assert.ok(!n._id.includes('.'), `Document ID must not contain period: ${n._id}`);
   }
   for (const g of result1.plannedGalleries) {
-    assert.ok(g._id.startsWith('gallery.'), `Expected gallery.<slug>, got ${g._id}`);
+    assert.ok(g._id.startsWith('gallery-'), `Expected gallery-<slug>, got ${g._id}`);
+    assert.ok(!g._id.includes('.'), `Document ID must not contain period: ${g._id}`);
   }
   for (const p of result1.plannedPhotos) {
-    assert.ok(p._id.startsWith('photo.'), `Expected photo.<id>, got ${p._id}`);
+    assert.ok(p._id.startsWith('photo-'), `Expected photo-<id>, got ${p._id}`);
+    assert.ok(!p._id.includes('.'), `Document ID must not contain period: ${p._id}`);
   }
 
   // Preserve photo ordering in galleries
   const corvette = result1.plannedGalleries.find((g) => g.slug.current === 'corvette-culture');
   assert.ok(corvette);
   assert.equal(corvette?.photos.length, 3);
-  assert.ok(corvette?.photos[0]._ref.startsWith('photo.corvette-culture.artist-c3_'));
-  assert.ok(corvette?.photos[1]._ref.startsWith('photo.corvette-culture.1969c3_'));
-  assert.ok(corvette?.photos[2]._ref.startsWith('photo.corvette-culture.bw-69-side_'));
+  assert.ok(corvette?.photos[0]._ref.startsWith('photo-corvette-culture-artist-c3_'));
+  assert.ok(corvette?.photos[1]._ref.startsWith('photo-corvette-culture-1969c3_'));
+  assert.ok(corvette?.photos[2]._ref.startsWith('photo-corvette-culture-bw-69-side_'));
   for (const ref of corvette!.photos) {
     assert.match(ref._key, /^k_[a-f0-9]{12}$/, 'Reference key must be Sanity-safe deterministic hash key');
   }
