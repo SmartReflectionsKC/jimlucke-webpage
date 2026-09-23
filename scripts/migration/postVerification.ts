@@ -280,53 +280,124 @@ export async function verifyMigration(
         : ptErrors.join('; '),
   });
 
-  // 6. Verify Frontend GROQ Listing Queries
+  // 6. Verify Frontend GROQ Listing Queries (with bounded retry for transient index visibility)
   let groqFieldNoteCount = 0;
   let groqGalleryCount = 0;
   let groqListValid = true;
   const groqListErrors: string[] = [];
 
-  try {
-    const groqFieldNotes: any[] = await client.fetch(FIELD_NOTES_LIST_QUERY);
-    groqFieldNoteCount = Array.isArray(groqFieldNotes) ? groqFieldNotes.length : 0;
+  const expectedFieldNoteSlugs = plannedFieldNotes.map((n) => n.slug.current);
+  let groqFieldNotes: any[] = [];
+  let fnListAttempt = 0;
+  let missingFieldNoteSlugs: string[] = [];
 
-    const expectedSlugs = plannedFieldNotes.map((n) => n.slug.current);
-    const returnedSlugs = new Set((groqFieldNotes || []).map((n: any) => n.slug));
+  while (fnListAttempt < maxRetries) {
+    fnListAttempt++;
+    missingFieldNoteSlugs = [];
+    try {
+      groqFieldNotes = await client.fetch(FIELD_NOTES_LIST_QUERY);
+      groqFieldNoteCount = Array.isArray(groqFieldNotes) ? groqFieldNotes.length : 0;
 
-    for (const expectedSlug of expectedSlugs) {
-      if (!returnedSlugs.has(expectedSlug)) {
+      const returnedSlugs = new Set((groqFieldNotes || []).map((n: any) => n?.slug));
+      for (const expectedSlug of expectedFieldNoteSlugs) {
+        if (!returnedSlugs.has(expectedSlug)) {
+          missingFieldNoteSlugs.push(expectedSlug);
+        }
+      }
+
+      // Retry ONLY missing/incomplete query visibility; break when all expected notes are visible
+      if (missingFieldNoteSlugs.length === 0 && groqFieldNoteCount >= expectedFieldNoteSlugs.length) {
+        break;
+      }
+    } catch (err: any) {
+      if (fnListAttempt >= maxRetries) {
         groqListValid = false;
-        groqListErrors.push(`Field Note slug "${expectedSlug}" not found in list query result.`);
+        groqListErrors.push(`FIELD_NOTES_LIST_QUERY failed: ${err.message}`);
+        break;
       }
     }
-  } catch (err: any) {
-    groqListValid = false;
-    groqListErrors.push(`FIELD_NOTES_LIST_QUERY failed: ${err.message}`);
+
+    if (fnListAttempt < maxRetries && retryDelayMs > 0) {
+      await sleepFn(retryDelayMs);
+    }
   }
 
-  try {
-    const groqGalleries: any[] = await client.fetch(GALLERIES_QUERY);
-    groqGalleryCount = Array.isArray(groqGalleries) ? groqGalleries.length : 0;
+  if (missingFieldNoteSlugs.length > 0) {
+    groqListValid = false;
+    for (const missingSlug of missingFieldNoteSlugs) {
+      groqListErrors.push(`Field Note slug "${missingSlug}" not found in list query result.`);
+    }
+  }
+  if (groqFieldNoteCount < expectedFieldNoteSlugs.length && missingFieldNoteSlugs.length === 0) {
+    groqListValid = false;
+    groqListErrors.push(
+      `FIELD_NOTES_LIST_QUERY returned ${groqFieldNoteCount} field notes, expected at least ${expectedFieldNoteSlugs.length}.`
+    );
+  }
 
-    const expectedGallerySlugs = plannedGalleries.map((g) => g.slug.current);
-    const returnedGallerySlugs = new Set((groqGalleries || []).map((g: any) => g.slug));
+  const expectedGallerySlugs = plannedGalleries.map((g) => g.slug.current);
+  let groqGalleries: any[] = [];
+  let galleryListAttempt = 0;
+  let missingGallerySlugs: string[] = [];
 
-    for (const expectedSlug of expectedGallerySlugs) {
-      if (!returnedGallerySlugs.has(expectedSlug)) {
+  while (galleryListAttempt < maxRetries) {
+    galleryListAttempt++;
+    missingGallerySlugs = [];
+    try {
+      groqGalleries = await client.fetch(GALLERIES_QUERY);
+      groqGalleryCount = Array.isArray(groqGalleries) ? groqGalleries.length : 0;
+
+      // Note: GALLERIES_QUERY projects "id": slug.current to match SanityGalleryDoc interface
+      const returnedGallerySlugs = new Set(
+        (groqGalleries || []).map((g: any) => g?.id || g?.slug)
+      );
+
+      for (const expectedSlug of expectedGallerySlugs) {
+        if (!returnedGallerySlugs.has(expectedSlug)) {
+          missingGallerySlugs.push(expectedSlug);
+        }
+      }
+
+      // Retry ONLY missing/incomplete query visibility; break when all expected galleries are visible
+      if (missingGallerySlugs.length === 0 && groqGalleryCount >= expectedGallerySlugs.length) {
+        break;
+      }
+    } catch (err: any) {
+      if (galleryListAttempt >= maxRetries) {
         groqListValid = false;
-        groqListErrors.push(`Gallery slug "${expectedSlug}" not found in galleries query result.`);
+        groqListErrors.push(`GALLERIES_QUERY failed: ${err.message}`);
+        break;
       }
     }
-  } catch (err: any) {
+
+    if (galleryListAttempt < maxRetries && retryDelayMs > 0) {
+      await sleepFn(retryDelayMs);
+    }
+  }
+
+  if (missingGallerySlugs.length > 0) {
     groqListValid = false;
-    groqListErrors.push(`GALLERIES_QUERY failed: ${err.message}`);
+    for (const missingSlug of missingGallerySlugs) {
+      groqListErrors.push(`Gallery slug "${missingSlug}" not found in galleries query result.`);
+    }
+  }
+  if (groqGalleryCount < expectedGallerySlugs.length && missingGallerySlugs.length === 0) {
+    groqListValid = false;
+    groqListErrors.push(
+      `GALLERIES_QUERY returned ${groqGalleryCount} galleries, expected at least ${expectedGallerySlugs.length}.`
+    );
   }
 
   checks.push({
     name: 'Frontend GROQ Listing Queries Return All 5 Field Notes and 6 Galleries',
-    passed: groqListValid && groqFieldNoteCount >= 5 && groqGalleryCount >= 6,
+    passed:
+      groqListValid &&
+      groqFieldNoteCount >= expectedFieldNoteSlugs.length &&
+      groqGalleryCount >= expectedGallerySlugs.length,
     details:
-      groqListValid
+      groqListValid &&
+      groqFieldNoteCount >= expectedFieldNoteSlugs.length &&
+      groqGalleryCount >= expectedGallerySlugs.length
         ? `GROQ listing queries returned ${groqFieldNoteCount} field notes and ${groqGalleryCount} galleries.`
         : groqListErrors.join('; '),
   });

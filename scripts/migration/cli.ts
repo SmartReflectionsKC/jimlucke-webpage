@@ -1,9 +1,11 @@
 /**
- * CLI entrypoint for Sanity content migration (Phase 3A: dry-run preflight).
+ * CLI entrypoint for Sanity content migration (Phases 3A & 3B).
  *
  * Usage:
  *   npm run migrate:sanity:dry-run   (runs preflight without writes)
  *   npm run migrate:sanity:execute   (requires --execute and SANITY_AUTH_TOKEN; fails closed if preflight fails)
+ *   npm run migrate:sanity:verify    (strictly read-only post-migration verification; zero writes/mutations)
+ *   npm run migrate:sanity:rollback  (rolls back migration; requires --confirm for active rollback)
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,11 +19,113 @@ import {
 } from './config';
 import { executeMigration } from './executor';
 import { performRollback, loadManifestFromDisk } from './rollback';
+import { verifyMigration } from './postVerification';
+import { AssetUploadResult } from './types';
 
 async function main() {
   const args = process.argv.slice(2);
   const isExecuteRequested = args.includes('--execute');
   const isRollbackRequested = args.includes('--rollback');
+  const isVerifyRequested = args.includes('--verify');
+
+  // =========================================================================
+  // Command 0: Read-Only Verification Mode
+  // =========================================================================
+  if (isVerifyRequested) {
+    console.log('🔍 Running Read-Only Post-Migration Verification...');
+    console.log('Mode: READ-ONLY VERIFICATION (no writes, transactions, or uploads)\n');
+
+    // Run preflight to obtain planned documents and assets
+    const preflightResult = runPreflight();
+    if (preflightResult.blockingCount > 0) {
+      console.error(`❌ Preflight failed with ${preflightResult.blockingCount} blocking error(s). Cannot verify.`);
+      process.exit(1);
+    }
+
+    // Safely load migration config (never prints secrets)
+    const cfg = getMigrationConfig(false);
+
+    const client = createClient({
+      projectId: cfg.projectId,
+      dataset: cfg.dataset,
+      apiVersion: cfg.apiVersion,
+      useCdn: false,
+      token: cfg.authToken,
+    });
+
+    // Locate manifest if available to get asset upload records
+    const manifestArg = args.find((a) => a.startsWith('--manifest='));
+    let manifestPath = manifestArg ? manifestArg.split('=')[1].trim() : '';
+
+    if (!manifestPath) {
+      const manifestDir = path.resolve(process.cwd(), 'migration-manifests');
+      if (fs.existsSync(manifestDir)) {
+        const files = fs
+          .readdirSync(manifestDir)
+          .filter((f) => f.startsWith('manifest-') && f.endsWith('.json'))
+          .sort()
+          .reverse();
+        if (files.length > 0) {
+          manifestPath = path.join(manifestDir, files[0]);
+        }
+      }
+    }
+
+    let assetUploads: AssetUploadResult[] = [];
+    if (manifestPath && fs.existsSync(manifestPath)) {
+      try {
+        const manifest = loadManifestFromDisk(manifestPath);
+        if (Array.isArray(manifest.assetUploads) && manifest.assetUploads.length > 0) {
+          assetUploads = manifest.assetUploads;
+          console.log(`Using asset upload records from manifest: ${path.basename(manifestPath)}`);
+        }
+      } catch (err: any) {
+        console.warn(`Warning: Could not read manifest at ${manifestPath}: ${err.message}`);
+      }
+    }
+
+    if (assetUploads.length === 0) {
+      assetUploads = preflightResult.plannedAssets.map((a) => ({
+        sourcePath: a.sourcePath,
+        canonicalPath: a.canonicalPath,
+        sha256: a.hash,
+        sha1: a.sha1,
+        targetAssetId: a.targetAssetId,
+        mimeType: a.mimeType,
+        sizeBytes: a.sizeBytes,
+        existedBeforeRun: false,
+        uploadTimestamp: new Date().toISOString(),
+      }));
+    }
+
+    console.log(`Verifying target dataset "${cfg.dataset}" in project "${cfg.projectId}"...\n`);
+
+    const verification = await verifyMigration({
+      client,
+      plannedFieldNotes: preflightResult.plannedFieldNotes,
+      plannedGalleries: preflightResult.plannedGalleries,
+      plannedPhotos: preflightResult.plannedPhotos,
+      plannedAssets: preflightResult.plannedAssets,
+      assetUploads,
+      maxRetries: 3,
+      retryDelayMs: 500,
+    });
+
+    console.log('📊 Post-Migration Verification Results:');
+    for (const check of verification.checks) {
+      const icon = check.passed ? '✅' : '❌';
+      console.log(`   ${icon} ${check.name}`);
+      console.log(`      ${check.details}`);
+    }
+
+    if (!verification.verified) {
+      console.error('\n🛑 Verification failed: Mismatches found in Sanity dataset.');
+      process.exit(1);
+    }
+
+    console.log('\n✅ All post-migration verification checks passed successfully!');
+    process.exit(0);
+  }
 
   // =========================================================================
   // Command 1: Rollback Mode

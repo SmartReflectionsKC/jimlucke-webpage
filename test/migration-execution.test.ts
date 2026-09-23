@@ -1184,3 +1184,308 @@ test('Read-After-Write: Content/schema mismatch does not retry and fails immedia
   assert.equal(sleepCalls, 0, 'Must NOT retry on schema/content mismatches');
 });
 
+// ---------------------------------------------------------------------------
+// 14. Phase 3B Post-Write Verification Regression Tests
+// ---------------------------------------------------------------------------
+test('Regression: GALLERIES_QUERY projection matching succeeds when galleries return "id" instead of "slug"', async () => {
+  const preflight = runPreflight();
+
+  const mockClient = {
+    fetch: async (query: string, params: any) => {
+      if (query.includes('*[_id in $expectedDocIds]')) {
+        return [
+          ...preflight.plannedFieldNotes,
+          ...preflight.plannedGalleries,
+          ...preflight.plannedPhotos,
+        ];
+      }
+      if (query.includes('*[_id in $draftIds]')) return [];
+      if (query.includes('*[_type == "sanity.imageAsset"')) {
+        return preflight.plannedAssets.map((a) => ({
+          _id: a.targetAssetId,
+          _type: 'sanity.imageAsset',
+          sha1hash: a.sha1,
+          size: a.sizeBytes,
+        }));
+      }
+      if (query.includes('slug.current == $slug')) {
+        const note = preflight.plannedFieldNotes.find((n) => n.slug.current === params?.slug);
+        return note
+          ? {
+              _id: note._id,
+              title: note.title,
+              slug: note.slug.current,
+              date: note.publicationDate,
+              featuredImage: note.featuredImage
+                ? {
+                    asset: {
+                      _id: note.featuredImage.asset._ref,
+                      metadata: { dimensions: { width: 800, height: 600 } },
+                    },
+                  }
+                : undefined,
+              featuredImageAlt: note.featuredImageAlt,
+              body: note.body,
+            }
+          : null;
+      }
+      if (query.includes('order(publicationDate desc)')) {
+        return preflight.plannedFieldNotes.map((n) => ({ ...n, slug: n.slug.current }));
+      }
+      if (query.includes('*[_type == "gallery"')) {
+        // Return EXACT projection shape produced by GALLERIES_QUERY ("id": slug.current, NO slug field)
+        return preflight.plannedGalleries.map((g) => ({
+          _id: g._id,
+          id: g.slug.current, // "id": slug.current as projected by GALLERIES_QUERY
+          title: g.title,
+          description: g.description,
+          date: g.publicationDate,
+          displayOrder: g.displayOrder,
+        }));
+      }
+      return [];
+    },
+  };
+
+  const assetUploads = preflight.plannedAssets.map((a) => ({
+    sourcePath: a.sourcePath,
+    canonicalPath: a.canonicalPath,
+    sha256: a.hash,
+    sha1: a.sha1,
+    targetAssetId: a.targetAssetId,
+    mimeType: a.mimeType,
+    sizeBytes: a.sizeBytes,
+    existedBeforeRun: false,
+    uploadTimestamp: new Date().toISOString(),
+  }));
+
+  const result = await verifyMigration({
+    client: mockClient,
+    plannedFieldNotes: preflight.plannedFieldNotes,
+    plannedGalleries: preflight.plannedGalleries,
+    plannedPhotos: preflight.plannedPhotos,
+    plannedAssets: preflight.plannedAssets,
+    assetUploads,
+    maxRetries: 3,
+    retryDelayMs: 0,
+  });
+
+  const listingCheck = result.checks.find((c) =>
+    c.name.includes('Frontend GROQ Listing Queries Return All 5 Field Notes and 6 Galleries')
+  );
+
+  assert.equal(result.verified, true, 'Verification must pass when GALLERIES_QUERY returns "id" projection');
+  assert.equal(listingCheck?.passed, true, 'Listing check must pass');
+  assert.equal(result.groqGalleryCount, 6, 'Must detect all 6 galleries');
+  assert.equal(result.groqFieldNoteCount, 5, 'Must detect all 5 field notes');
+});
+
+test('Read-After-Write Listing Queries: Transient replication lag in listing queries recovers via bounded retry', async () => {
+  const preflight = runPreflight();
+  let fnListCalls = 0;
+  let galleryListCalls = 0;
+  let sleepCalls = 0;
+
+  const mockSleep = async () => {
+    sleepCalls++;
+  };
+
+  const mockClient = {
+    fetch: async (query: string, params: any) => {
+      if (query.includes('*[_id in $expectedDocIds]')) {
+        return [
+          ...preflight.plannedFieldNotes,
+          ...preflight.plannedGalleries,
+          ...preflight.plannedPhotos,
+        ];
+      }
+      if (query.includes('*[_id in $draftIds]')) return [];
+      if (query.includes('*[_type == "sanity.imageAsset"')) {
+        return preflight.plannedAssets.map((a) => ({
+          _id: a.targetAssetId,
+          _type: 'sanity.imageAsset',
+          sha1hash: a.sha1,
+          size: a.sizeBytes,
+        }));
+      }
+      if (query.includes('slug.current == $slug')) {
+        const note = preflight.plannedFieldNotes.find((n) => n.slug.current === params?.slug);
+        return note
+          ? {
+              _id: note._id,
+              title: note.title,
+              slug: note.slug.current,
+              date: note.publicationDate,
+              featuredImage: note.featuredImage
+                ? {
+                    asset: {
+                      _id: note.featuredImage.asset._ref,
+                      metadata: { dimensions: { width: 800, height: 600 } },
+                    },
+                  }
+                : undefined,
+              featuredImageAlt: note.featuredImageAlt,
+              body: note.body,
+            }
+          : null;
+      }
+      if (query.includes('order(publicationDate desc)')) {
+        fnListCalls++;
+        // Attempt 1: simulate transient index lag returning empty array
+        if (fnListCalls === 1) {
+          return [];
+        }
+        // Attempt 2: index caught up, return all 5 field notes
+        return preflight.plannedFieldNotes.map((n) => ({ ...n, slug: n.slug.current }));
+      }
+      if (query.includes('*[_type == "gallery"')) {
+        galleryListCalls++;
+        // Attempt 1: simulate transient index lag returning only 3 galleries
+        if (galleryListCalls === 1) {
+          return preflight.plannedGalleries.slice(0, 3).map((g) => ({
+            _id: g._id,
+            id: g.slug.current,
+          }));
+        }
+        // Attempt 2: index caught up, return all 6 galleries
+        return preflight.plannedGalleries.map((g) => ({
+          _id: g._id,
+          id: g.slug.current,
+        }));
+      }
+      return [];
+    },
+  };
+
+  const assetUploads = preflight.plannedAssets.map((a) => ({
+    sourcePath: a.sourcePath,
+    canonicalPath: a.canonicalPath,
+    sha256: a.hash,
+    sha1: a.sha1,
+    targetAssetId: a.targetAssetId,
+    mimeType: a.mimeType,
+    sizeBytes: a.sizeBytes,
+    existedBeforeRun: false,
+    uploadTimestamp: new Date().toISOString(),
+  }));
+
+  const result = await verifyMigration({
+    client: mockClient,
+    plannedFieldNotes: preflight.plannedFieldNotes,
+    plannedGalleries: preflight.plannedGalleries,
+    plannedPhotos: preflight.plannedPhotos,
+    plannedAssets: preflight.plannedAssets,
+    assetUploads,
+    maxRetries: 3,
+    retryDelayMs: 10,
+    sleepFn: mockSleep,
+  });
+
+  const listingCheck = result.checks.find((c) =>
+    c.name.includes('Frontend GROQ Listing Queries Return All 5 Field Notes and 6 Galleries')
+  );
+
+  assert.equal(result.verified, true, 'Transient replication lag must recover via bounded retry');
+  assert.equal(listingCheck?.passed, true);
+  assert.equal(sleepCalls, 2, 'Should sleep once for field notes lag and once for galleries lag');
+  assert.equal(fnListCalls, 2, 'Field note listing query should succeed on attempt 2');
+  assert.equal(galleryListCalls, 2, 'Gallery listing query should succeed on attempt 2');
+});
+
+test('Read-After-Write Listing Queries: Persistent missing listing items fail after bounded maxRetries without infinite loop', async () => {
+  const preflight = runPreflight();
+  let fnListCalls = 0;
+  let sleepCalls = 0;
+
+  const mockSleep = async () => {
+    sleepCalls++;
+  };
+
+  const mockClient = {
+    fetch: async (query: string, params: any) => {
+      if (query.includes('*[_id in $expectedDocIds]')) {
+        return [
+          ...preflight.plannedFieldNotes,
+          ...preflight.plannedGalleries,
+          ...preflight.plannedPhotos,
+        ];
+      }
+      if (query.includes('*[_id in $draftIds]')) return [];
+      if (query.includes('*[_type == "sanity.imageAsset"')) {
+        return preflight.plannedAssets.map((a) => ({
+          _id: a.targetAssetId,
+          _type: 'sanity.imageAsset',
+          sha1hash: a.sha1,
+          size: a.sizeBytes,
+        }));
+      }
+      if (query.includes('slug.current == $slug')) {
+        const note = preflight.plannedFieldNotes.find((n) => n.slug.current === params?.slug);
+        return note
+          ? {
+              _id: note._id,
+              title: note.title,
+              slug: note.slug.current,
+              date: note.publicationDate,
+              featuredImage: note.featuredImage
+                ? {
+                    asset: {
+                      _id: note.featuredImage.asset._ref,
+                      metadata: { dimensions: { width: 800, height: 600 } },
+                    },
+                  }
+                : undefined,
+              featuredImageAlt: note.featuredImageAlt,
+              body: note.body,
+            }
+          : null;
+      }
+      if (query.includes('order(publicationDate desc)')) {
+        fnListCalls++;
+        // Always missing the last field note
+        return preflight.plannedFieldNotes.slice(0, 4).map((n) => ({ ...n, slug: n.slug.current }));
+      }
+      if (query.includes('*[_type == "gallery"')) {
+        return preflight.plannedGalleries.map((g) => ({
+          _id: g._id,
+          id: g.slug.current,
+        }));
+      }
+      return [];
+    },
+  };
+
+  const assetUploads = preflight.plannedAssets.map((a) => ({
+    sourcePath: a.sourcePath,
+    canonicalPath: a.canonicalPath,
+    sha256: a.hash,
+    sha1: a.sha1,
+    targetAssetId: a.targetAssetId,
+    mimeType: a.mimeType,
+    sizeBytes: a.sizeBytes,
+    existedBeforeRun: false,
+    uploadTimestamp: new Date().toISOString(),
+  }));
+
+  const result = await verifyMigration({
+    client: mockClient,
+    plannedFieldNotes: preflight.plannedFieldNotes,
+    plannedGalleries: preflight.plannedGalleries,
+    plannedPhotos: preflight.plannedPhotos,
+    plannedAssets: preflight.plannedAssets,
+    assetUploads,
+    maxRetries: 3,
+    retryDelayMs: 10,
+    sleepFn: mockSleep,
+  });
+
+  const listingCheck = result.checks.find((c) =>
+    c.name.includes('Frontend GROQ Listing Queries Return All 5 Field Notes and 6 Galleries')
+  );
+
+  assert.equal(result.verified, false, 'Persistent missing listing items must fail verification');
+  assert.equal(listingCheck?.passed, false);
+  assert.equal(fnListCalls, 3, 'Must attempt exactly maxRetries (3) times');
+  assert.equal(sleepCalls, 2, 'Must sleep exactly maxRetries - 1 (2) times before final attempt');
+});
+
