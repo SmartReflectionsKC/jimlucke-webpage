@@ -5,12 +5,13 @@ summary: "A concise 1-2 sentence summary of this field note for cards and previe
 category: "Practical Tech"
 tags: ["Practical Tech", "Innovation"]
 coverImage: "/images/photography/snow-light-dark.jpeg"
+coverImageAlt: "Accessible description of the cover image (required if coverImage is provided)."
 published: false
 readTime: "4 min read"
 externalLink: ""
 ---
 
-# Your Heading 1
+## Key Subheading
 
 Write your field note content here using standard Markdown.
 

@@ -29,47 +29,32 @@ import { getMigrationConfig } from '../scripts/migration/config';
 // -------------------------------------------------------------
 // 1. Current Content Preflight Verification
 // -------------------------------------------------------------
-test('Preflight [Current Content]: detects expected blocking issues deterministically', () => {
+test('Preflight [Current Content]: passes cleanly with 0 blocking errors and permits execution', () => {
   const result = runPreflight();
 
-  // Dry-run against current content must fail closed due to known blocking issues
-  assert.equal(result.valid, false, 'Preflight must fail on current repository content');
-  assert.ok(result.blockingCount >= 9, `Expected at least 9 blocking errors, found ${result.blockingCount}`);
+  // Dry-run against remediated content must pass cleanly
+  assert.equal(result.valid, true, 'Preflight must pass on remediated repository content');
+  assert.equal(result.blockingCount, 0, 'Must have zero blocking errors');
+  assert.equal(result.warningCount, 0, 'Must have zero warnings');
 
-  // 1. Zero-byte files
-  assert.equal(result.zeroByteFiles.length, 2, 'Must detect exactly 2 zero-byte files');
-  const zeroPaths = result.zeroByteFiles.map((z) => z.imagePath);
-  assert.ok(zeroPaths.includes('/images/photography/community-moment.jpeg'));
-  assert.ok(zeroPaths.includes('/images/photography/texture-light.jpeg'));
+  const report = generateMigrationReport(result);
+  assert.equal(report.reportData.isPermittedToExecute, true, 'Must permit migration execution');
 
-  for (const z of result.zeroByteFiles) {
-    assert.ok(z.referencedBy.length > 0, `Zero-byte file ${z.imagePath} must have references`);
-    assert.ok(z.referencedBy.every((r) => r.role === 'gallery-image' || r.role === 'cover' || r.role === 'both'));
-  }
+  // 1. Zero-byte files (none should remain)
+  assert.equal(result.zeroByteFiles.length, 0, 'Must detect 0 zero-byte files');
 
-  // 2. H1 findings
-  assert.equal(result.h1Findings.length, 2, 'Must detect exactly 2 body-level H1 headings');
-  const h1Files = result.h1Findings.map((h) => h.file);
-  assert.ok(h1Files.includes('how-can-retired-techies-make-impact.md'));
-  assert.ok(h1Files.includes('soar-life-center-phase-one.md'));
+  // 2. H1 findings (none should remain)
+  assert.equal(result.h1Findings.length, 0, 'Must detect 0 body-level H1 headings');
 
-  for (const h of result.h1Findings) {
-    assert.equal(h.line, 13, `H1 in ${h.file} must be at line 13`);
-    assert.ok(h.headingText.length > 0);
-    assert.ok(h.recommendedResolution.includes('Replace top-level'));
-  }
+  // 3. Alt text issues (none should remain)
+  const altIssues = result.issues.filter((i) => i.category === 'missing-alt-text');
+  assert.equal(altIssues.length, 0, 'Must have zero missing alt text issues');
 
-  // 3. Missing Field Note coverImageAlt
-  const altIssues = result.issues.filter(
-    (i) => i.category === 'missing-alt-text' && i.file.endsWith('.md')
-  );
-  assert.equal(altIssues.length, 5, 'All 5 Field Notes must be flagged for missing coverImageAlt');
-
-  // 4. Planned counts (excluding 0-byte images)
+  // 4. Planned document and asset counts
   assert.equal(result.plannedFieldNotes.length, 5, 'Must plan 5 Field Notes');
   assert.equal(result.plannedGalleries.length, 6, 'Must plan 6 Galleries');
-  assert.equal(result.plannedPhotos.length, 8, 'Must plan 8 valid photos (2 zero-byte photos excluded)');
-  assert.equal(result.plannedAssets.length, 8, 'Must plan 8 valid assets (2 zero-byte files excluded)');
+  assert.equal(result.plannedPhotos.length, 8, 'Must plan 8 valid photos');
+  assert.equal(result.plannedAssets.length, 8, 'Must plan 8 unique image assets');
 });
 
 // -------------------------------------------------------------

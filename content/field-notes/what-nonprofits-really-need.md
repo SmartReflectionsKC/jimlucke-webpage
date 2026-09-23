@@ -5,6 +5,7 @@ summary: "How simple, integrated workflows and actionable clarity can free up no
 category: "Nonprofit Systems"
 tags: ["Nonprofit", "Data", "Workflows", "Practical Tech"]
 coverImage: "/images/photography/soarlifecentervision.jpg"
+coverImageAlt: "Architectural rendering of the future SOAR Life and Community Center campus."
 published: true
 readTime: "5 min read"
 externalLink: ""

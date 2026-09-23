@@ -5,12 +5,13 @@ summary: "Bringing experienced technology professionals together to build soluti
 category: "Innovation Lab"
 tags: ["Innovation", "Mentorship", "Community", "Retired Techies"]
 coverImage: "/images/photography/artist-c3.jpeg"
+coverImageAlt: "Rear three-quarter view of a vintage silver Chevrolet Corvette Stingray on asphalt."
 published: true
 readTime: "3 min read"
 externalLink: ""
 ---
 
-# What If Retirement Was Just the Beginning?
+## What If Retirement Was Just the Beginning?
 
 There is an incredible amount of technology experience sitting on the sidelines.
 

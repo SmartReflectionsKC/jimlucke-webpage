@@ -5,6 +5,7 @@ summary: "In a world obsessed with shiny new tools, true innovation is often fou
 category: "Practical Tech"
 tags: ["Practical Tech", "Philosophy", "Systems Thinking"]
 coverImage: "/images/photography/snow-light-dark.jpeg"
+coverImageAlt: "Dense network of bare tree branches covered in fresh white snow."
 published: true
 readTime: "4 min read"
 externalLink: ""

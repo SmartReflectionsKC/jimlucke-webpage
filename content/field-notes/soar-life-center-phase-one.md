@@ -5,14 +5,15 @@ summary: "Help SOAR turn a bold vision into reality by supporting the Capital Ca
 category: "Nonprofit Systems"
 tags: ["SOAR", "Nonprofit", "Capital Campaign", "Community"]
 coverImage: "/images/photography/soarlifecentervision.jpg"
+coverImageAlt: "Architectural rendering of the future SOAR Life and Community Center campus."
 published: true
 readTime: "6 min read"
 externalLink: ""
 ---
 
-# Why the SOAR Life Center Matters
+## Why the SOAR Life Center Matters
 
-## Building a future where every family belongs
+### Building a future where every family belongs
 
 For families in the special needs community, the daily questions are often bigger than most people realize.
 
