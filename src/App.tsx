@@ -15,15 +15,30 @@ import { About } from "./components/About";
 import { Connect } from "./components/Connect";
 import { Footer } from "./components/Footer";
 import { useShareableModal } from "./utils/useShareableModal";
+import { useFieldNotesContent, usePhotographyContent } from "./sanity/useContent";
 
 export default function App() {
+  const {
+    notes,
+    loading: notesLoading,
+    error: notesError,
+    retry: retryNotes,
+  } = useFieldNotesContent();
+
+  const {
+    galleries,
+    loading: galleriesLoading,
+    error: galleriesError,
+    retry: retryGalleries,
+  } = usePhotographyContent();
+
   const {
     activeNote,
     activeGallery,
     openNote,
     openGallery,
     closeModal,
-  } = useShareableModal();
+  } = useShareableModal(notes, galleries);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -35,11 +50,19 @@ export default function App() {
         <Projects />
         <Workshop />
         <Photography
+          galleries={galleries}
+          loading={galleriesLoading}
+          error={galleriesError}
+          retry={retryGalleries}
           activeGallery={activeGallery}
           onOpenGallery={openGallery}
           onCloseGallery={closeModal}
         />
         <FieldNotes
+          notes={notes}
+          loading={notesLoading}
+          error={notesError}
+          retry={retryNotes}
           activeNote={activeNote}
           onOpenNote={openNote}
           onCloseNote={closeModal}

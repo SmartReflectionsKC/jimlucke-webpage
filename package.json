@@ -6,14 +6,18 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "validate": "tsx scripts/validate-content.ts",
+    "scan-secrets": "tsx scripts/scan-secrets.ts",
     "test": "tsx --test test/**/*.test.ts",
     "lint": "tsc --noEmit",
-    "build": "npm run validate && vite build",
+    "build": "npm run validate && vite build && npm run scan-secrets",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
+    "@portabletext/react": "^8.0.1",
+    "@sanity/client": "^8.6.2",
+    "@sanity/image-url": "^2.1.1",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.2.0",
     "clsx": "^2.1.1",
