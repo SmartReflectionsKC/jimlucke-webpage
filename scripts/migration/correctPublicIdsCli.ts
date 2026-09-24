@@ -12,7 +12,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createClient } from '@sanity/client';
 import { runPreflight, getLegacyDocumentIds } from './preflight';
-import { getMigrationConfig, enforceGitCleanliness } from './config';
+import {
+  getMigrationConfig,
+  enforceCorrectiveGitCleanliness,
+  getGitSafetyStatus,
+} from './config';
 import { executeCorrectiveMigration } from './correctiveExecutor';
 import { performCorrectiveRollback } from './correctiveRollback';
 import { verifyPreCleanup, verifyPostCleanup } from './correctiveVerification';
@@ -126,7 +130,16 @@ async function main() {
     const manifest = loadManifestFromDisk(manifestPath);
     const { isDryRun } = validateCorrectiveRollbackCeremony(args, manifest.runId);
 
-    console.log(`Mode: ${isDryRun ? 'DRY-RUN PREVIEW ONLY (pass --execute --confirm-project=wml93cow --confirm-dataset=production --confirm-run=<id> for real rollback)' : 'ACTIVE MUTATING ROLLBACK'}\n`);
+    console.log(`Mode: ${isDryRun ? 'DRY-RUN PREVIEW ONLY (pass --execute --confirm-project=wml93cow --confirm-dataset=production --confirm-run=<id> for real rollback)' : 'ACTIVE MUTATING ROLLBACK'}`);
+    let currentBranch = 'unknown';
+    try {
+      currentBranch = getGitSafetyStatus(process.cwd()).branch;
+    } catch {}
+    console.log(`Current Branch: ${currentBranch}\n`);
+
+    if (!isDryRun) {
+      enforceCorrectiveGitCleanliness(process.cwd());
+    }
 
     const cfg = getMigrationConfig(!isDryRun);
 
@@ -162,7 +175,12 @@ async function main() {
   // =========================================================================
   if (isVerifyRequested) {
     console.log('🔍 Running Read-Only Public ID Verification...');
-    console.log('Mode: READ-ONLY (no writes, deletes, or transactions)\n');
+    console.log('Mode: READ-ONLY (no writes, deletes, or transactions)');
+    let currentBranch = 'unknown';
+    try {
+      currentBranch = getGitSafetyStatus(process.cwd()).branch;
+    } catch {}
+    console.log(`Current Branch: ${currentBranch}\n`);
 
     const preflight = runPreflight();
     if (!preflight.valid || preflight.blockingCount > 0) {
@@ -246,7 +264,12 @@ async function main() {
   // Mode 3: Dry-Run Preflight (Default)
   // =========================================================================
   console.log('🚀 Running Public Root Document ID Preflight...');
-  console.log(`Mode: ${isExecuteRequested ? 'EXECUTE (Requested)' : 'DRY-RUN (Safe Preview)'}\n`);
+  console.log(`Mode: ${isExecuteRequested ? 'EXECUTE (Requested)' : 'DRY-RUN (Safe Preview)'}`);
+  let currentBranch = 'unknown';
+  try {
+    currentBranch = getGitSafetyStatus(process.cwd()).branch;
+  } catch {}
+  console.log(`Current Branch: ${currentBranch}\n`);
 
   const preflight = runPreflight();
 
@@ -283,7 +306,7 @@ async function main() {
   // =========================================================================
   if (isExecuteRequested) {
     validateCorrectiveExecutionCeremony(args);
-    enforceGitCleanliness(process.cwd());
+    enforceCorrectiveGitCleanliness(process.cwd());
 
     const cfg = getMigrationConfig(true);
     const client = createClient({

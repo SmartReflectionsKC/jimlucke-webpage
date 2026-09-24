@@ -25,7 +25,12 @@ import {
   DocumentSnapshotRecord,
   AssetUploadResult,
 } from './types';
-import { getMigrationConfig, enforceGitCleanliness, getGitSafetyStatus } from './config';
+import {
+  getMigrationConfig,
+  enforceCorrectiveGitCleanliness,
+  getGitSafetyStatus,
+  CORRECTIVE_EXPECTED_BRANCH,
+} from './config';
 import { performDatasetBackup } from './backup';
 import { deduplicateAndUploadAssets } from './assetUploader';
 import { commitDocumentsAtomically } from './documentWriter';
@@ -47,6 +52,7 @@ export interface CorrectiveExecutionOptions {
   manifestDir?: string;
   requireGitClean?: boolean;
   allowAnyBranch?: boolean;
+  cwd?: string;
   httpFetchFn?: (url: string) => Promise<{ status: number; ok: boolean }>;
 }
 
@@ -163,7 +169,7 @@ export async function executeCorrectiveMigration(
     const gitStage = startStage('git-safety-check');
     if (options.requireGitClean !== false && !dryRun) {
       try {
-        enforceGitCleanliness(process.cwd());
+        enforceCorrectiveGitCleanliness(options.cwd || process.cwd(), options.allowAnyBranch);
       } catch (err: any) {
         failStage(gitStage, err.message);
         throw err;

@@ -9,9 +9,13 @@
  */
 
 import { RunManifest } from './types';
+import { enforceCorrectiveGitCleanliness } from './config';
 
 export interface CorrectiveRollbackOptions {
   dryRun?: boolean;
+  requireGitClean?: boolean;
+  allowAnyBranch?: boolean;
+  cwd?: string;
 }
 
 export interface CorrectiveRollbackResult {
@@ -38,6 +42,22 @@ export async function performCorrectiveRollback(
   let restoredLegacyCount = 0;
   let deletedNewCount = 0;
   const retainedAssetCount = manifest.reusedAssetIds?.length || 8;
+
+  if (!dryRun && options.requireGitClean === true) {
+    try {
+      enforceCorrectiveGitCleanliness(options.cwd || process.cwd(), options.allowAnyBranch);
+    } catch (err: any) {
+      errors.push(err.message);
+      return {
+        success: false,
+        dryRun: false,
+        restoredLegacyCount: 0,
+        deletedNewCount: 0,
+        retainedAssetCount,
+        errors,
+      };
+    }
+  }
 
   if (dryRun) {
     restoredLegacyCount = cleanupRan ? legacySnapshots.length : 0;

@@ -20,6 +20,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { execSync } from 'node:child_process';
 
 import {
   FIELD_NOTES_LIST_QUERY,
@@ -40,10 +41,24 @@ import {
   computeDocumentFingerprint,
   stripSanitySystemFields,
 } from '../scripts/migration/canonicalDocument';
+import {
+  enforceGitCleanliness,
+  enforceCorrectiveGitCleanliness,
+  EXPECTED_BRANCH,
+  CORRECTIVE_EXPECTED_BRANCH,
+} from '../scripts/migration/config';
 import { RunManifest } from '../scripts/migration/types';
 
 function createTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'corrective-migration-test-'));
+}
+
+function createTempGitRepo(branchName: string): string {
+  const dir = createTempDir();
+  execSync('git init', { cwd: dir, stdio: 'pipe' });
+  execSync(`git checkout -b "${branchName}"`, { cwd: dir, stdio: 'pipe' });
+  execSync('git commit --allow-empty -m "initial commit"', { cwd: dir, stdio: 'pipe' });
+  return dir;
 }
 
 /**
@@ -899,5 +914,191 @@ test('Requirement 7: Sanity path semantics filter !(_id in path("*.**")) strictl
   for (const id of allRootIds) {
     const isExcluded = matchesPathPattern(id);
     assert.equal(isExcluded, false, `Public root ID "${id}" must NOT be excluded by !(_id in path("*.**"))`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 10. Requirement 8: Branch-Safety Guard Tests
+// ---------------------------------------------------------------------------
+test('Requirement 8: Corrective git safety validator accepts fix/sanity-public-document-ids and rejects other branches', () => {
+  const correctiveRepo = createTempGitRepo(CORRECTIVE_EXPECTED_BRANCH);
+  const featureRepo = createTempGitRepo(EXPECTED_BRANCH);
+  const mainRepo = createTempGitRepo('main');
+
+  try {
+    // 1. Corrective validator accepts fix/sanity-public-document-ids
+    const status = enforceCorrectiveGitCleanliness(correctiveRepo);
+    assert.equal(status.branch, CORRECTIVE_EXPECTED_BRANCH);
+
+    // 2. Corrective validator rejects feature/sanity-content-studio
+    assert.throws(
+      () => enforceCorrectiveGitCleanliness(featureRepo),
+      /current branch is "feature\/sanity-content-studio", but execution requires branch "fix\/sanity-public-document-ids"/
+    );
+
+    // 3. Corrective validator rejects main
+    assert.throws(
+      () => enforceCorrectiveGitCleanliness(mainRepo),
+      /current branch is "main", but execution requires branch "fix\/sanity-public-document-ids"/
+    );
+  } finally {
+    fs.rmSync(correctiveRepo, { recursive: true, force: true });
+    fs.rmSync(featureRepo, { recursive: true, force: true });
+    fs.rmSync(mainRepo, { recursive: true, force: true });
+  }
+});
+
+test('Requirement 8: Original migration validator still accepts only feature/sanity-content-studio', () => {
+  const featureRepo = createTempGitRepo(EXPECTED_BRANCH);
+  const correctiveRepo = createTempGitRepo(CORRECTIVE_EXPECTED_BRANCH);
+  const mainRepo = createTempGitRepo('main');
+
+  try {
+    // 1. Original validator accepts feature/sanity-content-studio
+    const status = enforceGitCleanliness(featureRepo);
+    assert.equal(status.branch, EXPECTED_BRANCH);
+
+    // 2. Original validator rejects fix/sanity-public-document-ids
+    assert.throws(
+      () => enforceGitCleanliness(correctiveRepo),
+      /current branch is "fix\/sanity-public-document-ids", but execution requires branch "feature\/sanity-content-studio"/
+    );
+
+    // 3. Original validator rejects main
+    assert.throws(
+      () => enforceGitCleanliness(mainRepo),
+      /current branch is "main", but execution requires branch "feature\/sanity-content-studio"/
+    );
+  } finally {
+    fs.rmSync(featureRepo, { recursive: true, force: true });
+    fs.rmSync(correctiveRepo, { recursive: true, force: true });
+    fs.rmSync(mainRepo, { recursive: true, force: true });
+  }
+});
+
+test('Requirement 8: Corrective execution branch rejection occurs before any network call or mutation', async () => {
+  const tempDir = createTempDir();
+  const preflight = runPreflight();
+  const featureRepo = createTempGitRepo('feature/sanity-content-studio');
+  const mainRepo = createTempGitRepo('main');
+
+  let fetchCalls = 0;
+  let txCalls = 0;
+
+  const mockClient = {
+    fetch: async () => {
+      fetchCalls++;
+      return [];
+    },
+    transaction: () => ({
+      createOrReplace: () => {},
+      delete: () => {},
+      commit: async () => {
+        txCalls++;
+        return { transactionId: 'unexpected' };
+      },
+    }),
+  };
+
+  try {
+    // Rejection on feature branch
+    const resFeature = await executeCorrectiveMigration({
+      client: mockClient,
+      anonymousClient: mockClient,
+      preflightResult: preflight,
+      dryRun: false,
+      requireGitClean: true,
+      cwd: featureRepo,
+      backupDir: tempDir,
+      manifestDir: tempDir,
+    });
+
+    assert.equal(resFeature.success, false);
+    assert.match(
+      resFeature.error || '',
+      /current branch is "feature\/sanity-content-studio", but execution requires branch "fix\/sanity-public-document-ids"/
+    );
+    // Must have made ZERO network calls and ZERO mutations
+    assert.equal(fetchCalls, 0, 'Must not dispatch any Sanity fetch queries before branch check');
+    assert.equal(txCalls, 0, 'Must not commit any Sanity transactions before branch check');
+
+    // Rejection on main branch
+    const resMain = await executeCorrectiveMigration({
+      client: mockClient,
+      anonymousClient: mockClient,
+      preflightResult: preflight,
+      dryRun: false,
+      requireGitClean: true,
+      cwd: mainRepo,
+      backupDir: tempDir,
+      manifestDir: tempDir,
+    });
+
+    assert.equal(resMain.success, false);
+    assert.match(
+      resMain.error || '',
+      /current branch is "main", but execution requires branch "fix\/sanity-public-document-ids"/
+    );
+    // Still ZERO network calls
+    assert.equal(fetchCalls, 0, 'Must not dispatch any Sanity fetch queries on main branch rejection');
+    assert.equal(txCalls, 0, 'Must not commit any Sanity transactions on main branch rejection');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    fs.rmSync(featureRepo, { recursive: true, force: true });
+    fs.rmSync(mainRepo, { recursive: true, force: true });
+  }
+});
+
+test('Requirement 8: Mutating rollback rejects invalid branch before network operations', async () => {
+  const preflight = runPreflight();
+  const mainRepo = createTempGitRepo('main');
+
+  let txCalls = 0;
+  const mockClient = {
+    fetch: async () => [],
+    transaction: () => ({
+      createOrReplace: () => {},
+      delete: () => {},
+      commit: async () => {
+        txCalls++;
+        return {};
+      },
+    }),
+  };
+
+  const manifest: RunManifest = {
+    runId: 'test-run-rollback-branch',
+    timestamp: new Date().toISOString(),
+    gitCommit: 'HEAD',
+    gitBranch: 'main',
+    projectId: 'wml93cow',
+    dataset: 'production',
+    apiVersion: '2026-09-01',
+    sourceContentHashes: {},
+    plannedDocumentIds: preflight.plannedFieldNotes.map((n) => n._id),
+    plannedAssetIds: preflight.plannedAssets.map((a) => a.targetAssetId),
+    newlyCreatedDocumentIds: preflight.plannedFieldNotes.map((n) => n._id),
+    newDocumentIds: preflight.plannedFieldNotes.map((n) => n._id),
+    replacedDocumentSnapshots: [],
+    legacyDocumentSnapshots: [],
+    assetUploads: [],
+    reusedAssetIds: preflight.plannedAssets.map((a) => a.targetAssetId),
+    cleanupStatus: 'pending',
+    stages: [],
+    completedSuccessfully: false,
+  };
+
+  try {
+    const res = await performCorrectiveRollback(mockClient, manifest, {
+      dryRun: false,
+      requireGitClean: true,
+      cwd: mainRepo,
+    });
+
+    assert.equal(res.success, false);
+    assert.ok(res.errors[0]?.includes('current branch is "main", but execution requires branch "fix/sanity-public-document-ids"'));
+    assert.equal(txCalls, 0, 'Must not commit transactions on branch failure');
+  } finally {
+    fs.rmSync(mainRepo, { recursive: true, force: true });
   }
 });
