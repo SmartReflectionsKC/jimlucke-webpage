@@ -3,7 +3,7 @@
  *
  * Enforces Sanity public root document requirements:
  * 1. Must NOT contain any period ('.'). Periods turn documents into hierarchical
- *    paths/subpaths (path("*.**")) which Sanity hides from unauthenticated queries.
+ *    paths/subpaths which Sanity Content Lake hides from unauthenticated queries.
  * 2. Must NOT match any private/system namespace (e.g., 'drafts.*', '_.', or leading underscore).
  * 3. Must adhere to the strict root-ID character policy: only [a-zA-Z0-9_-], starting with letter or number.
  * 4. Must be non-empty and within Sanity's max ID length (128 characters).

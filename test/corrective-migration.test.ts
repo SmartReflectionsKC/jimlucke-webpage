@@ -85,36 +85,65 @@ function buildFinalizedPlannedDocs(preflight: any) {
 // ---------------------------------------------------------------------------
 // 1. Amendment 1: Frontend GROQ Queries Require Public Root Documents
 // ---------------------------------------------------------------------------
-test('Amendment 1: GROQ queries explicitly require public root documents and exclude path documents', () => {
+test('Amendment 1 & Requirement 1: GROQ queries remove overly broad path("*.**") while retaining draft exclusions', () => {
   // 1. Listing Query
   assert.ok(
-    FIELD_NOTES_LIST_QUERY.includes('!(_id in path("*.**"))'),
-    'FIELD_NOTES_LIST_QUERY must require public root documents'
+    !FIELD_NOTES_LIST_QUERY.includes('!(_id in path("*.**"))'),
+    'FIELD_NOTES_LIST_QUERY must NOT include overly broad path("*.**")'
   );
   assert.ok(
     FIELD_NOTES_LIST_QUERY.includes('!(_id in path("drafts.**"))'),
-    'FIELD_NOTES_LIST_QUERY must retain draft exclusion as defense-in-depth'
+    'FIELD_NOTES_LIST_QUERY must retain draft exclusion'
   );
 
   // 2. Detail Query
   assert.ok(
-    FIELD_NOTE_DETAIL_QUERY.includes('!(_id in path("*.**"))'),
-    'FIELD_NOTE_DETAIL_QUERY must require public root documents'
+    !FIELD_NOTE_DETAIL_QUERY.includes('!(_id in path("*.**"))'),
+    'FIELD_NOTE_DETAIL_QUERY must NOT include overly broad path("*.**")'
   );
   assert.ok(
     FIELD_NOTE_DETAIL_QUERY.includes('!(_id in path("drafts.**"))'),
-    'FIELD_NOTE_DETAIL_QUERY must retain draft exclusion as defense-in-depth'
+    'FIELD_NOTE_DETAIL_QUERY must retain draft exclusion'
   );
 
   // 3. Galleries Query
   assert.ok(
-    GALLERIES_QUERY.includes('!(_id in path("*.**"))'),
-    'GALLERIES_QUERY must require public root documents'
+    !GALLERIES_QUERY.includes('!(_id in path("*.**"))'),
+    'GALLERIES_QUERY must NOT include overly broad path("*.**")'
   );
   assert.ok(
     GALLERIES_QUERY.includes('!(_id in path("drafts.**"))'),
-    'GALLERIES_QUERY must retain draft exclusion as defense-in-depth'
+    'GALLERIES_QUERY must retain draft exclusion'
   );
+});
+
+test('Requirement 6: Anonymous listing and detail queries return expected notes and galleries without path("*.**")', async () => {
+  const preflight = runPreflight();
+  const mockClient = createMockSanityClient(preflight);
+
+  // Listing query for Field Notes
+  const fieldNotes = await mockClient.fetch(FIELD_NOTES_LIST_QUERY, {});
+  assert.equal(fieldNotes.length, 5, 'Must return all 5 Field Notes');
+  for (const fn of fieldNotes) {
+    assert.ok(fn.slug);
+    assert.ok(fn._id.startsWith('fieldNote-'));
+  }
+
+  // Listing query for Galleries
+  const galleries = await mockClient.fetch(GALLERIES_QUERY, {});
+  assert.equal(galleries.length, 6, 'Must return all 6 Galleries');
+  for (const g of galleries) {
+    assert.ok(g.slug || g.id);
+    assert.ok(g._id.startsWith('gallery-'));
+  }
+
+  // Detail query for a specific Field Note
+  const testSlug = 'empowerresponse-first-responders';
+  const detail = await mockClient.fetch(FIELD_NOTE_DETAIL_QUERY, { slug: testSlug });
+  assert.ok(detail, `Detail query must return note for slug ${testSlug}`);
+  assert.equal(detail._id, `fieldNote-${testSlug}`);
+  assert.equal(detail.slug, testSlug);
+  assert.ok(Array.isArray(detail.body) && detail.body.length > 0);
 });
 
 // ---------------------------------------------------------------------------
@@ -188,36 +217,47 @@ test('Amendment 2: Preflight planned content produces 100% public-safe root IDs 
 });
 
 // ---------------------------------------------------------------------------
-// 3. Amendment 1 & 6: Coexistence Without Double-Counting
+// 3. Amendment 1 & 6 & Requirement 6: Anonymous Content Lake Public Visibility
 // ---------------------------------------------------------------------------
-test('Amendment 1 & 6: Authenticated queries do not double-count during coexistence', async () => {
+test('Amendment 1 & 6 & Requirement 6: Anonymous Content Lake queries return exact public root documents and exclude legacy path documents', async () => {
   const preflight = runPreflight();
 
-  // Simulate Content Lake state during coexistence (both old and new documents present)
+  // Simulate Content Lake coexistence state: 5 legacy dotted docs + 5 new public root docs + 1 draft doc
   const legacyDocs = preflight.plannedFieldNotes.map((n) => ({
     _id: `fieldNote.${n.slug.current}`,
     _type: 'fieldNote',
     title: n.title,
-    slug: n.slug.current,
+    slug: { current: n.slug.current },
   }));
   const newDocs = preflight.plannedFieldNotes.map((n) => ({
     _id: n._id, // fieldNote-slug
     _type: 'fieldNote',
     title: n.title,
-    slug: n.slug.current,
+    slug: { current: n.slug.current },
   }));
+  const draftDocs = [
+    {
+      _id: `drafts.${preflight.plannedFieldNotes[0]._id}`,
+      _type: 'fieldNote',
+      title: 'Draft in progress',
+      slug: { current: preflight.plannedFieldNotes[0].slug.current },
+    },
+  ];
 
-  const allDatasetDocs = [...legacyDocs, ...newDocs];
+  const allDatasetDocs = [...legacyDocs, ...newDocs, ...draftDocs];
 
-  // Evaluate query filter: !(_id in path("*.**"))
-  const returnedByQuery = allDatasetDocs.filter((doc) => {
-    // !(_id in path("*.**")) excludes any document with a period
-    return !doc._id.includes('.');
+  // In Sanity Content Lake:
+  // 1. Unauthenticated/anonymous requests naturally hide any document containing a period (hierarchical path documents).
+  // 2. Draft documents matching path("drafts.**") are excluded.
+  const anonymousVisibleDocs = allDatasetDocs.filter((doc) => {
+    const isPathDocument = doc._id.includes('.');
+    const isDraft = doc._id.startsWith('drafts.');
+    return !isPathDocument && !isDraft;
   });
 
-  assert.equal(returnedByQuery.length, 5, 'Query must return exactly 5 Field Notes, ignoring the 5 legacy docs');
-  for (const doc of returnedByQuery) {
-    assert.ok(!doc._id.includes('.'));
+  assert.equal(anonymousVisibleDocs.length, 5, 'Anonymous query must return exactly 5 Field Notes, ignoring legacy path and draft docs');
+  for (const doc of anonymousVisibleDocs) {
+    assert.ok(!doc._id.includes('.'), `Visible doc must be a public root ID: ${doc._id}`);
     assert.ok(doc._id.startsWith('fieldNote-'));
   }
 });
@@ -874,35 +914,28 @@ test('Requirement 4 & 8: Source hash mismatch aborts before Transaction A', asyn
 });
 
 // ---------------------------------------------------------------------------
-// 9. Requirement 7: Real Sanity Path Semantics Filter Test
+// 9. Requirement 6 & 7: Document-State Exclusions and Verification-Gated Cleanup
 // ---------------------------------------------------------------------------
-test('Requirement 7: Sanity path semantics filter !(_id in path("*.**")) strictly distinguishes root vs path IDs', () => {
-  // Path matching function simulating Sanity Content Lake path("*.**")
-  // In Content Lake, path("*.**") matches any document _id that contains at least one dot.
-  const matchesPathPattern = (id: string) => id.includes('.');
+test('Requirement 6 & 7: path("*.**") is rejected while path("drafts.**") and path("versions.**") isolate document states without excluding root IDs', () => {
+  // Pattern matching simulating GROQ path expressions
+  const matchesDraftsPattern = (id: string) => id.startsWith('drafts.');
+  const matchesVersionsPattern = (id: string) => id.startsWith('versions.');
 
-  const legacyAndSystemIds = [
-    'fieldNote.empowerresponse-first-responders',
-    'fieldNote.how-can-retired-techies-make-impact',
-    'fieldNote.soar-life-center-phase-one',
-    'gallery.abandoned-america',
-    'gallery.corvette-culture',
-    'photo.corvette-culture.artist-c3_5eccb094',
-    'photo.abandoned-america.abandon-house_55150c0d',
-    'drafts.fieldNote-test',
-    'drafts.photo-corvette-culture-1969c3_5eccb094',
-    'versions.r1.fieldNote-test',
-    'system.users.123',
-    '_system.configuration',
+  const draftAndVersionIds = [
+    'drafts.fieldNote-empowerresponse-first-responders',
+    'drafts.gallery-abandoned-america',
+    'drafts.photo-abandoned-america-abandon-house_55150c0d',
+    'versions.r1.fieldNote-empowerresponse-first-responders',
+    'versions.r2.gallery-abandoned-america',
   ];
 
-  // All legacy, draft, and system IDs must be excluded by !(_id in path("*.**"))
-  for (const id of legacyAndSystemIds) {
-    const isExcluded = matchesPathPattern(id);
-    assert.ok(isExcluded, `Legacy or system ID "${id}" must be excluded by path("*.**")`);
+  // All draft and version IDs must be matched and excluded by their specific patterns
+  for (const id of draftAndVersionIds) {
+    const isExcluded = matchesDraftsPattern(id) || matchesVersionsPattern(id);
+    assert.ok(isExcluded, `Draft/version ID "${id}" must be matched by drafts.** or versions.**`);
   }
 
-  // All planned public-safe root IDs must be allowed
+  // All 19 planned public-safe root IDs must NOT be matched by drafts.** or versions.**
   const preflight = runPreflight();
   const allRootIds = [
     ...preflight.plannedFieldNotes.map((n) => n._id),
@@ -912,9 +945,50 @@ test('Requirement 7: Sanity path semantics filter !(_id in path("*.**")) strictl
 
   assert.equal(allRootIds.length, 19);
   for (const id of allRootIds) {
-    const isExcluded = matchesPathPattern(id);
-    assert.equal(isExcluded, false, `Public root ID "${id}" must NOT be excluded by !(_id in path("*.**"))`);
+    const isExcluded = matchesDraftsPattern(id) || matchesVersionsPattern(id);
+    assert.equal(isExcluded, false, `Public root ID "${id}" must NOT be excluded by drafts.** or versions.**`);
   }
+  // Specifically verify the exact document from real evidence
+  assert.equal(
+    matchesDraftsPattern('fieldNote-empowerresponse-first-responders'),
+    false,
+    'Root ID fieldNote-empowerresponse-first-responders must NOT be excluded'
+  );
+});
+
+test('Requirement 6: Cleanup (Transaction B) remains strictly gated behind successful verification', async () => {
+  const tempDir = createTempDir();
+  const preflight = runPreflight();
+
+  // Create a mock client where anonymous verification queries fail (simulate 0 returned)
+  const mockClient = createMockSanityClient(preflight);
+  const failingAnonymousClient = {
+    fetch: async (query: string) => {
+      // Simulate anonymous query failure returning 0 notes
+      if (query.includes('*[_type == "fieldNote"')) {
+        return []; // 0 notes -> verification must fail!
+      }
+      return [];
+    },
+  };
+
+  const mockHttpFetch = async () => ({ status: 200, ok: true });
+
+  const result = await executeCorrectiveMigration({
+    client: mockClient,
+    anonymousClient: failingAnonymousClient,
+    preflightResult: preflight,
+    dryRun: false,
+    backupDir: tempDir,
+    manifestDir: tempDir,
+    requireGitClean: false,
+    httpFetchFn: mockHttpFetch,
+  });
+
+  assert.equal(result.success, false, 'Execution must fail when anonymous verification fails');
+  assert.ok(result.error?.includes('Pre-cleanup verification failed'));
+  assert.equal(result.manifest.cleanupStatus, 'pending', 'Legacy documents must NOT be cleaned up');
+  assert.equal(mockClient.getTxCount(), 1, 'Only Transaction A (creation) must commit; Transaction B (cleanup) must NOT commit');
 });
 
 // ---------------------------------------------------------------------------

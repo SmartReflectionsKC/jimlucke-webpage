@@ -91,9 +91,9 @@ export async function verifyPreCleanup(
     anonAttempt++;
     try {
       [anonFieldNotes, anonGalleries, anonPhotos] = await Promise.all([
-        anonymousClient.fetch('*[_type == "fieldNote" && !(_id in path("*.**"))]{_id, "slug": slug.current}'),
-        anonymousClient.fetch('*[_type == "gallery" && !(_id in path("*.**"))]{_id, "id": slug.current}'),
-        anonymousClient.fetch('*[_type == "photo" && !(_id in path("*.**"))]{_id}'),
+        anonymousClient.fetch('*[_type == "fieldNote" && !(_id in path("drafts.**"))]{_id, "slug": slug.current}'),
+        anonymousClient.fetch('*[_type == "gallery" && !(_id in path("drafts.**"))]{_id, "id": slug.current}'),
+        anonymousClient.fetch('*[_type == "photo" && !(_id in path("drafts.**"))]{_id}'),
       ]);
 
       const fnCount = Array.isArray(anonFieldNotes) ? anonFieldNotes.length : 0;
@@ -324,7 +324,7 @@ export async function verifyPostCleanup(
     const [anonNotes, anonGals, anonPhotos] = await Promise.all([
       anonymousClient.fetch(FIELD_NOTES_LIST_QUERY),
       anonymousClient.fetch(GALLERIES_QUERY),
-      anonymousClient.fetch('*[_type == "photo" && !(_id in path("*.**"))]{_id}'),
+      anonymousClient.fetch('*[_type == "photo" && !(_id in path("drafts.**"))]{_id}'),
     ]);
 
     if (!Array.isArray(anonNotes) || anonNotes.length !== plannedFieldNotes.length) {
