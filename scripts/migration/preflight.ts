@@ -22,6 +22,7 @@ import {
 } from './types';
 import { inspectImageFile } from './imageDimensions';
 import { convertMarkdownToPortableText } from './markdownToPortableText';
+import { validatePublicSafeRootId } from './idValidator';
 
 const CONTROLLED_CATEGORIES = new Set([
   'Practical Tech',
@@ -227,7 +228,18 @@ export function runPreflight(options: RunPreflightOptions = {}): PreflightResult
 
       const filePath = path.join(fieldNotesDir, file);
       const slug = file.replace(/\.md$/, '');
-      const docId = `fieldNote.${slug}`;
+      const docId = `fieldNote-${slug}`;
+      const legacyDocId = `fieldNote.${slug}`;
+
+      const idValidation = validatePublicSafeRootId(docId);
+      if (!idValidation.valid) {
+        issues.push({
+          severity: 'blocking',
+          category: 'invalid-id',
+          file,
+          message: idValidation.error || `Invalid public root document ID "${docId}".`,
+        });
+      }
 
       // Duplicate slug check
       if (seenSlugs.has(slug)) {
@@ -435,6 +447,7 @@ export function runPreflight(options: RunPreflightOptions = {}): PreflightResult
         featured: Boolean(data.featured),
         body: conversion.blocks,
         sourceFile: file,
+        legacyDocId,
       };
 
       plannedFieldNotes.push(plannedDoc);
@@ -503,7 +516,18 @@ export function runPreflight(options: RunPreflightOptions = {}): PreflightResult
       }
 
       const slug = (manifest.id || file.replace(/\.json$/, '')).trim();
-      const docId = `gallery.${slug}`;
+      const docId = `gallery-${slug}`;
+      const legacyDocId = `gallery.${slug}`;
+
+      const idValidation = validatePublicSafeRootId(docId);
+      if (!idValidation.valid) {
+        issues.push({
+          severity: 'blocking',
+          category: 'invalid-id',
+          file,
+          message: idValidation.error || `Invalid public root document ID "${docId}".`,
+        });
+      }
 
       // Duplicate slug check
       if (seenSlugs.has(slug)) {
@@ -664,7 +688,18 @@ export function runPreflight(options: RunPreflightOptions = {}): PreflightResult
             .update(sourceIdentity)
             .digest('hex')
             .slice(0, 8);
-          const photoDocId = `photo.${normalizedSlug}.${normalizedFilename}_${shortHash}`;
+          const photoDocId = `photo-${normalizedSlug}-${normalizedFilename}_${shortHash}`;
+          const legacyPhotoDocId = `photo.${normalizedSlug}.${normalizedFilename}_${shortHash}`;
+
+          const photoIdValidation = validatePublicSafeRootId(photoDocId);
+          if (!photoIdValidation.valid) {
+            issues.push({
+              severity: 'blocking',
+              category: 'invalid-id',
+              file,
+              message: photoIdValidation.error || `Invalid public root photo document ID "${photoDocId}".`,
+            });
+          }
 
           if (seenDocIds.has(photoDocId)) {
             issues.push({
@@ -685,6 +720,7 @@ export function runPreflight(options: RunPreflightOptions = {}): PreflightResult
             legacyFilename: rawFilename,
             assetSourcePath: imgSrc,
             targetAssetRef: assetResult.asset.targetAssetId,
+            legacyDocId: legacyPhotoDocId,
           };
           plannedPhotos.push(photoDoc);
 
@@ -793,6 +829,7 @@ export function runPreflight(options: RunPreflightOptions = {}): PreflightResult
         coverImageAlt: coverImageAlt || '',
         photos: plannedPhotoRefs,
         sourceFile: file,
+        legacyDocId,
       };
 
       plannedGalleries.push(plannedGallery);
@@ -831,4 +868,18 @@ export function runPreflight(options: RunPreflightOptions = {}): PreflightResult
     plannedAssets: Array.from(plannedAssetsMap.values()),
     schemaMappings,
   };
+}
+
+/**
+ * Returns the exact 19 legacy period-based document IDs corresponding to the preflight content.
+ */
+export function getLegacyDocumentIds(preflight: PreflightResult): string[] {
+  const legacyFieldNotes = preflight.plannedFieldNotes.map(
+    (n) => n.legacyDocId || `fieldNote.${n.slug.current}`
+  );
+  const legacyGalleries = preflight.plannedGalleries.map(
+    (g) => g.legacyDocId || `gallery.${g.slug.current}`
+  );
+  const legacyPhotos = preflight.plannedPhotos.map((p) => p.legacyDocId || p._id);
+  return [...legacyFieldNotes, ...legacyGalleries, ...legacyPhotos];
 }

@@ -129,17 +129,23 @@ export function getGitSafetyStatus(cwd: string = process.cwd()): GitSafetyCheckR
 }
 
 export const EXPECTED_BRANCH = 'feature/sanity-content-studio';
+export const CORRECTIVE_EXPECTED_BRANCH = 'fix/sanity-public-document-ids';
 
 /**
  * Validates that git working tree is clean and on the required branch.
  * Throws an explicit error if working tree is dirty or branch is incorrect.
+ * Default expectedBranch preserves the original migration requirement ('feature/sanity-content-studio').
  */
-export function enforceGitCleanliness(cwd: string = process.cwd(), allowAnyBranch = false): { branch: string; commit: string } {
+export function enforceGitCleanliness(
+  cwd: string = process.cwd(),
+  allowAnyBranch = false,
+  expectedBranch: string = EXPECTED_BRANCH
+): { branch: string; commit: string } {
   const status = getGitSafetyStatus(cwd);
 
-  if (!allowAnyBranch && status.branch !== EXPECTED_BRANCH) {
+  if (!allowAnyBranch && status.branch !== expectedBranch) {
     throw new Error(
-      `Git safety check failed: current branch is "${status.branch}", but execution requires branch "${EXPECTED_BRANCH}".`
+      `Git safety check failed: current branch is "${status.branch}", but execution requires branch "${expectedBranch}".`
     );
   }
 
@@ -153,6 +159,17 @@ export function enforceGitCleanliness(cwd: string = process.cwd(), allowAnyBranc
     branch: status.branch,
     commit: status.commit,
   };
+}
+
+/**
+ * Dedicated git safety validator for corrective migration (Requirements 2, 4, 5).
+ * Strictly requires branch "fix/sanity-public-document-ids".
+ */
+export function enforceCorrectiveGitCleanliness(
+  cwd: string = process.cwd(),
+  allowAnyBranch = false
+): { branch: string; commit: string } {
+  return enforceGitCleanliness(cwd, allowAnyBranch, CORRECTIVE_EXPECTED_BRANCH);
 }
 
 /**

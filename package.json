@@ -15,6 +15,10 @@
     "migrate:sanity:execute": "tsx scripts/migration/cli.ts --execute",
     "migrate:sanity:verify": "tsx scripts/migration/cli.ts --verify",
     "migrate:sanity:rollback": "tsx scripts/migration/cli.ts --rollback",
+    "migrate:sanity:correct-public-ids:dry-run": "tsx scripts/migration/correctPublicIdsCli.ts",
+    "migrate:sanity:correct-public-ids:execute": "tsx scripts/migration/correctPublicIdsCli.ts --execute",
+    "migrate:sanity:correct-public-ids:verify": "tsx scripts/migration/correctPublicIdsCli.ts --verify",
+    "migrate:sanity:correct-public-ids:rollback": "tsx scripts/migration/correctPublicIdsCli.ts --rollback",
     "clean": "rm -rf dist server.js"
   },
   "dependencies": {
