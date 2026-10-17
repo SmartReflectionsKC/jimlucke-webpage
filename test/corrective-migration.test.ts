@@ -123,7 +123,8 @@ test('Requirement 6: Anonymous listing and detail queries return expected notes 
 
   // Listing query for Field Notes
   const fieldNotes = await mockClient.fetch(FIELD_NOTES_LIST_QUERY, {});
-  assert.equal(fieldNotes.length, 5, 'Must return all 5 Field Notes');
+  assert.equal(fieldNotes.length, preflight.plannedFieldNotes.length, `Must return all ${preflight.plannedFieldNotes.length} Field Notes`);
+  assert.equal(fieldNotes.length, 6, 'Must return all 6 Field Notes');
   for (const fn of fieldNotes) {
     assert.ok(fn.slug);
     assert.ok(fn._id.startsWith('fieldNote-'));
@@ -187,11 +188,17 @@ test('Amendment 2: Preflight planned content produces 100% public-safe root IDs 
     ...preflight.plannedPhotos,
   ];
 
-  assert.equal(allPlannedDocs.length, 19, 'Must plan exactly 19 documents');
+  const expectedPlannedCount =
+    preflight.plannedFieldNotes.length +
+    preflight.plannedGalleries.length +
+    preflight.plannedPhotos.length;
+
+  assert.equal(allPlannedDocs.length, expectedPlannedCount, `Must plan exactly ${expectedPlannedCount} documents`);
+  assert.equal(allPlannedDocs.length, 20, 'Must plan exactly 20 documents');
 
   const allDocIds = allPlannedDocs.map((d) => d._id);
   const validation = validateAllPublicSafeRootIds(allDocIds);
-  assert.equal(validation.valid, true, `All 19 IDs must be valid public root IDs: ${validation.errors.join(', ')}`);
+  assert.equal(validation.valid, true, `All ${allPlannedDocs.length} IDs must be valid public root IDs: ${validation.errors.join(', ')}`);
 
   // Ensure zero periods in any ID
   for (const doc of allPlannedDocs) {
@@ -210,7 +217,8 @@ test('Amendment 2: Preflight planned content produces 100% public-safe root IDs 
 
   // Ensure legacy IDs are correctly tracked
   const legacyIds = getLegacyDocumentIds(preflight);
-  assert.equal(legacyIds.length, 19);
+  assert.equal(legacyIds.length, expectedPlannedCount, `Must track all ${expectedPlannedCount} legacy IDs`);
+  assert.equal(legacyIds.length, 20, 'Must track all 20 legacy IDs');
   for (const id of legacyIds) {
     assert.ok(id.includes('.'), `Legacy ID must contain period: ${id}`);
   }
@@ -255,7 +263,12 @@ test('Amendment 1 & 6 & Requirement 6: Anonymous Content Lake queries return exa
     return !isPathDocument && !isDraft;
   });
 
-  assert.equal(anonymousVisibleDocs.length, 5, 'Anonymous query must return exactly 5 Field Notes, ignoring legacy path and draft docs');
+  assert.equal(
+    anonymousVisibleDocs.length,
+    preflight.plannedFieldNotes.length,
+    `Anonymous query must return exactly ${preflight.plannedFieldNotes.length} Field Notes, ignoring legacy path and draft docs`
+  );
+  assert.equal(anonymousVisibleDocs.length, 6, 'Anonymous query must return exactly 6 Field Notes, ignoring legacy path and draft docs');
   for (const doc of anonymousVisibleDocs) {
     assert.ok(!doc._id.includes('.'), `Visible doc must be a public root ID: ${doc._id}`);
     assert.ok(doc._id.startsWith('fieldNote-'));
@@ -476,9 +489,15 @@ test('Amendment 7 & Requirement 8: Resumability recognizes previously created do
     httpFetchFn: mockHttpFetch,
   });
 
+  const expectedDocCount =
+    preflight.plannedFieldNotes.length +
+    preflight.plannedGalleries.length +
+    preflight.plannedPhotos.length;
+
   assert.equal(result.success, true, `Resumed run must succeed when targets match planned content: ${result.error}`);
-  assert.equal(result.manifest.canonicalFingerprints?.length, 19, 'Must record 19 canonical fingerprints');
-  assert.ok(result.manifest.canonicalFingerprints?.every((f) => f.matched), 'All 19 canonical fingerprints must match');
+  assert.equal(result.manifest.canonicalFingerprints?.length, expectedDocCount, `Must record ${expectedDocCount} canonical fingerprints`);
+  assert.equal(result.manifest.canonicalFingerprints?.length, 20, 'Must record 20 canonical fingerprints');
+  assert.ok(result.manifest.canonicalFingerprints?.every((f) => f.matched), `All ${expectedDocCount} canonical fingerprints must match`);
   assert.equal(mockClient.getTxCount(), 2, 'Must commit creation and cleanup transactions');
 });
 
@@ -539,10 +558,18 @@ test('Amendment 5, 6, 8, 11: Corrective execution succeeds with two transactions
 
   // Verify manifest completeness (Amendment 8)
   const manifest = result.manifest;
-  assert.equal(manifest.plannedDocumentIds.length, 19, 'plannedDocumentIds must have all 19 IDs');
+  const expectedDocCount =
+    preflight.plannedFieldNotes.length +
+    preflight.plannedGalleries.length +
+    preflight.plannedPhotos.length;
+
+  assert.equal(manifest.plannedDocumentIds.length, expectedDocCount, `plannedDocumentIds must have all ${expectedDocCount} IDs`);
+  assert.equal(manifest.plannedDocumentIds.length, 20, 'plannedDocumentIds must have all 20 IDs');
   assert.equal(manifest.plannedAssetIds.length, 8, 'plannedAssetIds must have all 8 asset IDs');
-  assert.equal(manifest.legacyDocumentIds?.length, 19, 'legacyDocumentIds must have all 19 IDs');
-  assert.equal(manifest.newDocumentIds?.length, 19, 'newDocumentIds must have all 19 IDs');
+  assert.equal(manifest.legacyDocumentIds?.length, expectedDocCount, `legacyDocumentIds must have all ${expectedDocCount} IDs`);
+  assert.equal(manifest.legacyDocumentIds?.length, 20, 'legacyDocumentIds must have all 20 IDs');
+  assert.equal(manifest.newDocumentIds?.length, expectedDocCount, `newDocumentIds must have all ${expectedDocCount} IDs`);
+  assert.equal(manifest.newDocumentIds?.length, 20, 'newDocumentIds must have all 20 IDs');
   assert.equal(manifest.reusedAssetIds?.length, 8, 'reusedAssetIds must have all 8 IDs');
   assert.equal(manifest.creationTransactionId, 'tx-1');
   assert.equal(manifest.cleanupTransactionId, 'tx-2');
@@ -935,7 +962,7 @@ test('Requirement 6 & 7: path("*.**") is rejected while path("drafts.**") and pa
     assert.ok(isExcluded, `Draft/version ID "${id}" must be matched by drafts.** or versions.**`);
   }
 
-  // All 19 planned public-safe root IDs must NOT be matched by drafts.** or versions.**
+  // All planned public-safe root IDs must NOT be matched by drafts.** or versions.**
   const preflight = runPreflight();
   const allRootIds = [
     ...preflight.plannedFieldNotes.map((n) => n._id),
@@ -943,7 +970,13 @@ test('Requirement 6 & 7: path("*.**") is rejected while path("drafts.**") and pa
     ...preflight.plannedPhotos.map((p) => p._id),
   ];
 
-  assert.equal(allRootIds.length, 19);
+  const expectedRootCount =
+    preflight.plannedFieldNotes.length +
+    preflight.plannedGalleries.length +
+    preflight.plannedPhotos.length;
+
+  assert.equal(allRootIds.length, expectedRootCount);
+  assert.equal(allRootIds.length, 20);
   for (const id of allRootIds) {
     const isExcluded = matchesDraftsPattern(id) || matchesVersionsPattern(id);
     assert.equal(isExcluded, false, `Public root ID "${id}" must NOT be excluded by drafts.** or versions.**`);
