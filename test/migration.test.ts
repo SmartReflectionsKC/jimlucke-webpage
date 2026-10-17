@@ -51,7 +51,7 @@ test('Preflight [Current Content]: passes cleanly with 0 blocking errors and per
   assert.equal(altIssues.length, 0, 'Must have zero missing alt text issues');
 
   // 4. Planned document and asset counts
-  assert.equal(result.plannedFieldNotes.length, 5, 'Must plan 5 Field Notes');
+  assert.equal(result.plannedFieldNotes.length, 6, 'Must plan 6 Field Notes');
   assert.equal(result.plannedGalleries.length, 6, 'Must plan 6 Galleries');
   assert.equal(result.plannedPhotos.length, 8, 'Must plan 8 valid photos');
   assert.equal(result.plannedAssets.length, 8, 'Must plan 8 unique image assets');

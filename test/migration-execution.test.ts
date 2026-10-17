@@ -1277,7 +1277,8 @@ test('Regression: GALLERIES_QUERY projection matching succeeds when galleries re
   assert.equal(result.verified, true, 'Verification must pass when GALLERIES_QUERY returns "id" projection');
   assert.equal(listingCheck?.passed, true, 'Listing check must pass');
   assert.equal(result.groqGalleryCount, 6, 'Must detect all 6 galleries');
-  assert.equal(result.groqFieldNoteCount, 5, 'Must detect all 5 field notes');
+  assert.equal(result.groqFieldNoteCount, preflight.plannedFieldNotes.length, `Must detect all ${preflight.plannedFieldNotes.length} field notes`);
+  assert.equal(result.groqFieldNoteCount, 6, 'Must detect all 6 field notes');
 });
 
 test('Read-After-Write Listing Queries: Transient replication lag in listing queries recovers via bounded retry', async () => {
